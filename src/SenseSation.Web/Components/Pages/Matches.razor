@@ -1,0 +1,68 @@
+@page "/matches"
+@inject AppData App
+@inject NavigationManager Nav
+
+<PageTitle>SenseSation · Matches</PageTitle>
+
+<div class="page-head">
+    <div><h1>Matches</h1><div class="sub">Last @App.Matches.Count competitive games</div></div>
+    @if (App.IsConfigured)
+    {
+        <button class="btn primary" @onclick="Refresh" disabled="@App.IsLoading">↻ Refresh</button>
+    }
+</div>
+
+<StateBanner />
+
+@if (App.HasData)
+{
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th><th>Result</th><th>Agent</th><th>Map</th><th>Score</th>
+                    <th>K / D / A</th><th>K/D</th><th>HS%</th><th>ADR</th><th>FB</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in App.Matches)
+                {
+                    <tr class="row-link" @onclick="@(() => Open(m.MatchId))">
+                        <td class="muted mono">@m.StartedAt.LocalDateTime.ToString("MMM d, HH:mm")</td>
+                        <td class="@ResultClass(m.Result)">@m.Result.ToString().ToUpper()</td>
+                        <td>@m.Agent</td>
+                        <td>@m.Map</td>
+                        <td class="mono">@m.ScoreLabel</td>
+                        <td class="mono">@m.You.Kills / @m.You.Deaths / @m.You.Assists</td>
+                        <td class="mono">@m.You.Kd.ToString("0.00")</td>
+                        <td class="mono">@m.You.HeadshotPct%</td>
+                        <td class="mono">@m.You.DamagePerRound</td>
+                        <td class="mono">@m.You.FirstKills</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else if (App.IsConfigured && !App.IsLoading)
+{
+    <div class="empty"><div class="big">▤</div><p>No matches yet. Hit refresh.</p></div>
+}
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        if (App.IsConfigured && !App.HasData && !App.IsLoading)
+            await App.LoadAsync();
+    }
+
+    private async Task Refresh() => await App.LoadAsync();
+    private void Open(string id) => Nav.NavigateTo($"match/{id}");
+
+    private static string ResultClass(MatchResult r) => r switch
+    {
+        MatchResult.Win => "tag-win",
+        MatchResult.Loss => "tag-loss",
+        _ => "tag-draw"
+    };
+}

@@ -1,0 +1,105 @@
+@page "/match/{MatchId}"
+@inject AppData App
+
+<PageTitle>SenseSation · Match</PageTitle>
+
+<div class="page-head">
+    <div><h1>Match Detail</h1><div class="sub">@MatchId</div></div>
+    <a class="btn" href="matches">← Back</a>
+</div>
+
+@if (_loading)
+{
+    <div class="banner info"><span class="spinner"></span> &nbsp;Loading scoreboard…</div>
+}
+else if (_error is not null)
+{
+    <div class="banner err">@_error</div>
+}
+else if (_detail is not null)
+{
+    var s = _detail.Summary;
+    <div class="grid cols-4">
+        <StatCard Title="Result" Value="@s.Result.ToString().ToUpper()"
+                  Sub="@s.ScoreLabel" Accent="@(s.Result == MatchResult.Win ? "var(--win)" : "var(--loss)")" />
+        <StatCard Title="Map / Agent" Value="@s.Map" Sub="@s.Agent" />
+        <StatCard Title="Your K/D/A" Value="@($"{s.You.Kills}/{s.You.Deaths}/{s.You.Assists}")"
+                  Sub="@($"{s.You.Kd:0.00} K/D · {s.You.DamagePerRound} ADR")" />
+        <StatCard Title="Opening Duels" Value="@($"{s.You.FirstKills} FK · {s.You.FirstDeaths} FD")"
+                  Sub="@($"{s.You.MultiKills} multikill rounds")" />
+    </div>
+
+    @if (_detail.Economy.Count > 0)
+    {
+        <div class="card" style="margin-top:16px">
+            <h3>Your Buy Pattern</h3>
+            <div style="margin-top:8px">
+                @foreach (var e in _detail.Economy)
+                {
+                    <span class="buy @e.BuyType" title="Round @e.RoundNumber · @e.BuyType · @e.LoadoutValue cr">@e.RoundNumber</span>
+                }
+            </div>
+            <div class="muted" style="margin-top:10px;font-size:.82rem">
+                <span class="buy FullBuy">&nbsp;</span> Full
+                <span class="buy ForceBuy">&nbsp;</span> Force
+                <span class="buy Eco">&nbsp;</span> Eco
+                <span class="buy Save">&nbsp;</span> Save
+                @if (s.EconDisciplinePct is { } pct) { <span style="margin-left:12px">Econ discipline: <strong>@pct.ToString("0.#")%</strong></span> }
+            </div>
+        </div>
+    }
+
+    @foreach (var team in new[] { Team.Red, Team.Blue })
+    {
+        var players = _detail.AllPlayers.Where(p => p.Team == team).ToList();
+        if (players.Count == 0) continue;
+        <div class="card" style="margin-top:16px">
+            <h3>@(team) Team</h3>
+            <table>
+                <thead>
+                    <tr><th>Player</th><th>Agent</th><th>Rank</th><th>K</th><th>D</th><th>A</th><th>HS%</th><th>ADR</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in players.OrderByDescending(p => Line(p).Score))
+                    {
+                        var l = Line(p);
+                        <tr class="@(p.IsSelf ? "self-row" : "")">
+                            <td><strong>@(string.IsNullOrEmpty(p.Name) ? "Player" : p.DisplayName)</strong></td>
+                            <td>@p.Agent</td>
+                            <td><RankPill Rank="p.Rank" ShowRr="false" /></td>
+                            <td class="mono">@l.Kills</td>
+                            <td class="mono">@l.Deaths</td>
+                            <td class="mono">@l.Assists</td>
+                            <td class="mono">@l.HeadshotPct%</td>
+                            <td class="mono">@l.DamagePerRound</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public string MatchId { get; set; } = "";
+
+    private MatchDetail? _detail;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _error = null;
+        try
+        {
+            _detail = await App.GetMatchAsync(MatchId);
+            if (_detail is null) _error = "Match not found or could not be loaded.";
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _loading = false; }
+    }
+
+    private Scoreline Line(PlayerSummary p) =>
+        _detail!.Scoreboard.TryGetValue(p.Puuid, out var l) ? l : new Scoreline();
+}

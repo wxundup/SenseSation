@@ -1,0 +1,95 @@
+@page "/settings"
+@inject AppData App
+@inject NavigationManager Nav
+
+<PageTitle>SenseSation · Settings</PageTitle>
+
+<div class="page-head"><div><h1>Settings</h1><div class="sub">Data source &amp; tracked account</div></div></div>
+
+<div class="grid cols-2" style="align-items:start">
+    <div class="card">
+        <h3>HenrikDev API Key</h3>
+        <p class="muted" style="margin:4px 0 14px">
+            With a key, stats work for any account without the game running. Without one, SenseSation
+            reads your own stats from the running Riot client. Stored locally only.
+        </p>
+        <label class="fld">API Key
+            <input type="password" @bind="_key" placeholder="paste your HenrikDev key" autocomplete="off" />
+        </label>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:14px">
+            <button class="btn primary" @onclick="SaveKey">Save key</button>
+            @if (!string.IsNullOrEmpty(_key))
+            {
+                <button class="btn" @onclick="ClearKey">Clear</button>
+            }
+            <span class="chip @(App.SourceNeedsRiotId ? "" : "minor")" style="margin-left:auto">
+                Mode: @App.SourceName
+            </span>
+        </div>
+        @if (_keySaved)
+        {
+            <div class="banner info" style="margin:14px 0 0">✓ Key saved — now in HenrikDev mode.</div>
+        }
+    </div>
+
+    <div class="card">
+        <h3>Tracked Riot Account</h3>
+        <p class="muted" style="margin:4px 0 14px">
+            @(App.SourceNeedsRiotId
+                ? "Required in HenrikDev mode — the account to analyze."
+                : "Not needed in local-client mode (uses whoever is signed into Valorant).")
+        </p>
+        <div class="grid cols-3" style="gap:10px">
+            <label class="fld">Region
+                <select @bind="_region">
+                    <option value="eu">EU</option><option value="na">NA</option>
+                    <option value="ap">AP</option><option value="kr">KR</option>
+                    <option value="latam">LATAM</option><option value="br">BR</option>
+                </select>
+            </label>
+            <label class="fld">Riot Name<input @bind="_name" placeholder="PlayerName" /></label>
+            <label class="fld">Tag<input @bind="_tag" placeholder="EUW" /></label>
+        </div>
+        <button class="btn primary" style="margin-top:14px" @onclick="SaveAccount"
+                disabled="@(string.IsNullOrWhiteSpace(_name) || string.IsNullOrWhiteSpace(_tag))">
+            Save &amp; load
+        </button>
+    </div>
+</div>
+
+@code {
+    private string _region = "eu";
+    private string _name = "";
+    private string _tag = "";
+    private string _key = "";
+    private bool _keySaved;
+
+    protected override void OnInitialized()
+    {
+        _region = App.Account.Region;
+        _name = App.Account.Name;
+        _tag = App.Account.Tag;
+    }
+
+    private async Task SaveKey()
+    {
+        App.UpdateHenrikKey(_key.Trim());
+        _keySaved = !string.IsNullOrWhiteSpace(_key);
+        if (App.IsConfigured) await App.LoadAsync();
+    }
+
+    private async Task ClearKey()
+    {
+        _key = "";
+        _keySaved = false;
+        App.UpdateHenrikKey("");
+        await Task.CompletedTask;
+    }
+
+    private async Task SaveAccount()
+    {
+        App.UpdateAccount(new RiotId(_region, _name.Trim(), _tag.Trim().TrimStart('#')));
+        await App.LoadAsync();
+        Nav.NavigateTo("");
+    }
+}

@@ -1,0 +1,33 @@
+<div style="position:relative;width:@(Size)px;height:@(Size)px">
+    <svg width="@Size" height="@Size" viewBox="0 0 @Size @Size" style="transform:rotate(-90deg)">
+        <circle cx="@C" cy="@C" r="@R" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="@Stroke" />
+        <circle cx="@C" cy="@C" r="@R" fill="none" stroke="@Color" stroke-width="@Stroke"
+                stroke-linecap="round" stroke-dasharray="@Circ.ToString(Inv)"
+                stroke-dashoffset="@Offset.ToString(Inv)"
+                style="transition:stroke-dashoffset .7s cubic-bezier(.2,.8,.2,1)" />
+    </svg>
+    <div class="ring-label">
+        <div>
+            <b style="color:@Color">@Top</b>
+            @if (!string.IsNullOrEmpty(Bottom))
+            {
+                <small>@Bottom</small>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public double Percent { get; set; }
+    [Parameter] public string Color { get; set; } = "var(--teal)";
+    [Parameter] public int Size { get; set; } = 124;
+    [Parameter] public int Stroke { get; set; } = 10;
+    [Parameter] public string Top { get; set; } = "";
+    [Parameter] public string Bottom { get; set; } = "";
+
+    private static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
+    private double C => Size / 2.0;
+    private double R => (Size - Stroke) / 2.0;
+    private double Circ => 2 * Math.PI * R;
+    private double Offset => Circ * (1 - Math.Clamp(Percent, 0, 100) / 100.0);
+}

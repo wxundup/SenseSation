@@ -1,0 +1,147 @@
+@page "/trainer"
+@inject AppData App
+
+<PageTitle>SenseSation · Smart Trainer</PageTitle>
+
+<div class="page-head">
+    <div><h1>Smart Trainer</h1><div class="sub">Your game vs competitive &amp; Radiant benchmarks</div></div>
+    @if (App.IsConfigured)
+    {
+        <button class="btn primary" @onclick="Refresh" disabled="@App.IsLoading">↻ Refresh</button>
+    }
+</div>
+
+<StateBanner />
+
+@if (App.HasData && App.Report is { } report)
+{
+    <div class="banner info">@report.Headline</div>
+
+    <div class="card" style="margin-bottom:16px">
+        <h3>Your Rank · @_rank.Name</h3>
+        <p style="font-weight:600;margin:4px 0 14px">@_guide.Summary</p>
+        <div class="grid cols-2">
+            <div>
+                <div class="muted" style="text-transform:uppercase;font-size:.72rem;letter-spacing:1px;margin-bottom:8px">Common mistakes at @_rank.Division</div>
+                @foreach (var t in _guide.Mistakes)
+                {
+                    var confirmed = t.MetricKey is not null && _weakKeys.Contains(t.MetricKey);
+                    <div style="margin-bottom:8px">
+                        <span style="color:@(confirmed ? "var(--loss)" : "var(--text)")">@(confirmed ? "⚠" : "•") @t.Text</span>
+                        @if (confirmed)
+                        {
+                            <span class="chip major" style="margin-left:6px">your stats confirm this</span>
+                        }
+                    </div>
+                }
+            </div>
+            <div>
+                <div class="muted" style="text-transform:uppercase;font-size:.72rem;letter-spacing:1px;margin-bottom:8px">Climb to @_guide.NextRank</div>
+                @foreach (var step in _guide.ClimbPlan)
+                {
+                    <div style="margin-bottom:8px">▸ @step</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="grid cols-2">
+        <div class="card">
+            <h3>Performance vs Benchmarks</h3>
+            <div style="margin-top:12px">
+                @foreach (var b in RadiantBenchmarks.All)
+                {
+                    <BenchmarkBar Benchmark="b" Your="App.Metrics.ValueFor(b.Key)" Severity="@Sev(b.Key)" />
+                }
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <h3>What's Costing You Games</h3>
+                @if (report.Weaknesses.Count == 0)
+                {
+                    <p class="muted">Everything clears the "Good" bar — but Good is the floor, not the goal.
+                    Every number is still short of Radiant. Pick the closest gap and grind it.</p>
+                }
+                else
+                {
+                    @foreach (var w in report.Weaknesses)
+                    {
+                        <div style="margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                                <strong>@w.Benchmark.Label</strong>
+                                <span class="chip @SevName(w.Severity)">@w.Severity</span>
+                            </div>
+                            <div style="font-size:.9rem">@w.Critique</div>
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="card" style="margin-top:16px">
+                <h3>Your Practice Plan</h3>
+                @if (report.Plan.Count == 0)
+                {
+                    <p class="muted">No drills needed — keep your routine.</p>
+                }
+                else
+                {
+                    @foreach (var d in report.Plan)
+                    {
+                        <div style="margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)">
+                            <div style="display:flex;justify-content:space-between">
+                                <strong>@d.Name</strong>
+                                <span class="chip">@d.Area@(d.Minutes > 0 ? $" · {d.Minutes}m" : "")</span>
+                            </div>
+                            <div style="font-size:.9rem;margin:4px 0">@d.How</div>
+                            <div class="muted" style="font-size:.82rem">📍 @d.Where</div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+}
+else if (App.IsConfigured && !App.IsLoading)
+{
+    <div class="empty"><div class="big">◎</div><p>Load matches to generate your coaching report.</p>
+        <button class="btn primary" @onclick="Refresh">Load my stats</button></div>
+}
+
+@code {
+    private Dictionary<string, string> _sev = new();
+    private Rank _rank = Rank.Unranked;
+    private RankGuide _guide = RankPlaybook.For("Unranked");
+    private HashSet<string> _weakKeys = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (App.IsConfigured && !App.HasData && !App.IsLoading)
+            await App.LoadAsync();
+        BuildView();
+    }
+
+    protected override void OnParametersSet() => BuildView();
+
+    private void BuildView()
+    {
+        _sev = App.Report?.Weaknesses.ToDictionary(w => w.Benchmark.Key, w => SevName(w.Severity))
+               ?? new();
+        _weakKeys = App.Report?.Weaknesses.Select(w => w.Benchmark.Key).ToHashSet() ?? new();
+        _rank = App.Rank ?? Rank.Unranked;
+        _guide = RankPlaybook.For(_rank.Division);
+    }
+
+    private string Sev(string key) => _sev.TryGetValue(key, out var s) ? s : "ok";
+
+    private async Task Refresh() { await App.LoadAsync(); BuildView(); }
+
+    private static string SevName(Severity s) => s switch
+    {
+        Severity.Major => "major",
+        Severity.Notable => "notable",
+        _ => "minor"
+    };
+}

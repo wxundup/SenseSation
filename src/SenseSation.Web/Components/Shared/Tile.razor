@@ -1,0 +1,19 @@
+<div class="card hover tile">
+    <div class="top">
+        <span class="ti"><Icon Name="@Icon" Size="17" /></span>
+        @Label
+    </div>
+    <div class="value" style="@(string.IsNullOrEmpty(Accent) ? "" : $"color:{Accent}")">@Value</div>
+    @if (!string.IsNullOrEmpty(Sub))
+    {
+        <div class="sub muted">@Sub</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Icon { get; set; } = "";
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter, EditorRequired] public string Value { get; set; } = "";
+    [Parameter] public string? Sub { get; set; }
+    [Parameter] public string? Accent { get; set; }
+}

@@ -1,0 +1,120 @@
+@page "/vod"
+@inject RoundReviewService Reviewer
+@inject CaptureOptions Capture
+@implements IDisposable
+
+<PageTitle>SenseSation · VOD Review</PageTitle>
+
+<div class="page-head">
+    <div><h1>VOD Review</h1><div class="sub">Live segment reviewer — record, analyze, discard. Nothing saved to disk.</div></div>
+    <div style="display:flex;gap:10px;align-items:center">
+        @if (Reviewer.State == RecordingState.Recording)
+        {
+            <button class="btn stop" @onclick="Stop">■ Stop</button>
+        }
+        else
+        {
+            <select @bind="_segLen" style="width:auto">
+                <option value="60">60s segments</option>
+                <option value="90">90s segments</option>
+                <option value="120">120s segments</option>
+            </select>
+            <button class="btn rec" @onclick="StartRec" disabled="@(!_ffmpegOk || Reviewer.State == RecordingState.Stopping)">● Start Live Review</button>
+        }
+    </div>
+</div>
+
+<div class="banner info">
+    Records your own screen in short segments. Each finished segment is analyzed for action, a few
+    thumbnails are kept <strong>in memory</strong>, then the footage is <strong>deleted</strong> — nothing persists.
+    Review only (post-segment), no live in-round feedback, no game hooks.
+</div>
+
+@if (!_ffmpegOk)
+{
+    <div class="banner err">ffmpeg not found at "@Capture.FfmpegPath". Install it / add it to PATH to use VOD review.</div>
+}
+
+<div class="card" style="margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:14px">
+        <span class="live-dot @(Reviewer.State == RecordingState.Recording ? "on" : "")"></span>
+        <strong>@StatusText</strong>
+        <span class="muted" style="margin-left:auto">@Capture.Width×@Capture.Height · @Capture.Fps fps · @_segLen s segments</span>
+    </div>
+    @if (!string.IsNullOrEmpty(Reviewer.Error))
+    {
+        <div class="muted" style="margin-top:8px;color:var(--loss)">@Reviewer.Error</div>
+    }
+</div>
+
+@if (Reviewer.Reviews.Count == 0)
+{
+    <div class="empty">
+        <div class="big">▶</div>
+        <p>@(Reviewer.State == RecordingState.Recording
+            ? "Recording… your first segment review lands when the segment completes."
+            : "Start a live review, then play. Segment breakdowns appear here as you go.")</p>
+    </div>
+}
+else
+{
+    @foreach (var r in Reviewer.Reviews.AsEnumerable().Reverse())
+    {
+        <div class="card" style="margin-bottom:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <h3 style="margin:0">Segment @r.Index · @r.At.ToLocalTime().ToString("HH:mm:ss")</h3>
+                <span class="chip @(r.FightCount > 0 ? "major" : "")">@r.FightCount action moment@(r.FightCount == 1 ? "" : "s")</span>
+            </div>
+            @if (r.Moments.Count == 0)
+            {
+                <p class="muted" style="margin:0">Quiet segment — no major action detected.</p>
+            }
+            else
+            {
+                <div class="grid cols-3">
+                    @foreach (var m in r.Moments)
+                    {
+                        <div class="shot">
+                            @if (m.ThumbnailDataUrl is not null)
+                            {
+                                <img src="@m.ThumbnailDataUrl" alt="moment" />
+                            }
+                            <div style="padding:6px 8px;font-size:.78rem" class="muted mono">@($"{m.At:mm\\:ss}") · intensity @m.Intensity.ToString("0")</div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    private bool _ffmpegOk;
+    private int _segLen = 90;
+
+    protected override void OnInitialized()
+    {
+        _ffmpegOk = Reviewer.FfmpegAvailable;
+        _segLen = Reviewer.SegmentSeconds;
+        Reviewer.Changed += OnChanged;
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private void StartRec()
+    {
+        Reviewer.SegmentSeconds = _segLen;
+        Reviewer.Start();
+    }
+
+    private async Task Stop() => await Reviewer.StopAsync();
+
+    private string StatusText => Reviewer.State switch
+    {
+        RecordingState.Recording => "Recording — analyzing segments as they complete",
+        RecordingState.Stopping => "Finishing up…",
+        _ => Reviewer.Reviews.Count > 0 ? "Stopped — footage deleted, reviews kept in memory" : "Idle"
+    };
+
+    public void Dispose() => Reviewer.Changed -= OnChanged;
+}

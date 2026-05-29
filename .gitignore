@@ -1,0 +1,21 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+dist/
+*.user
+.vs/
+
+# Local data / secrets — never commit
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+*.db
+*.db-shm
+*.db-wal
+
+# Recordings / clips
+*.mp4
+
+# Run logs
+run.log
+run.err.log

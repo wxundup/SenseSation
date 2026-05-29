@@ -1,0 +1,76 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject AppData App
+
+<div class="shell">
+    <aside class="rail">
+        <div class="brand">
+            <div class="logo"><Icon Name="crosshair" Size="22" /></div>
+            <div class="brand-txt">
+                <b>SenseSation</b>
+                <small>GAMESENSE OS</small>
+            </div>
+        </div>
+
+        <nav class="nav">
+            <NavLink href="" Match="NavLinkMatch.All"><span class="ic"><Icon Name="dashboard" /></span><span>Dashboard</span></NavLink>
+            <NavLink href="matches"><span class="ic"><Icon Name="matches" /></span><span>Matches</span></NavLink>
+            <NavLink href="trainer"><span class="ic"><Icon Name="trainer" /></span><span>Smart Trainer</span></NavLink>
+            <NavLink href="rank"><span class="ic"><Icon Name="rank" /></span><span>Rank Tracker</span></NavLink>
+            <NavLink href="live"><span class="ic"><Icon Name="live" /></span><span>Live Lobby</span></NavLink>
+            <NavLink href="vod"><span class="ic"><Icon Name="vod" /></span><span>VOD Review</span></NavLink>
+            <NavLink href="settings"><span class="ic"><Icon Name="settings" /></span><span>Settings</span></NavLink>
+        </nav>
+
+        <div class="rail-foot">
+            <span class="live-dot @(App.IsLoading ? "" : "on")"></span>
+            <span>@App.SourceName</span>
+        </div>
+    </aside>
+
+    <div class="main">
+        <header class="topbar">
+            <div class="player">
+                <div class="player-id">
+                    <span class="who">@AccountLabel</span>
+                    @if (App.Rank is { } rk && rk.Tier > 0)
+                    {
+                        <RankPill Rank="rk" />
+                    }
+                    else
+                    {
+                        <span class="muted" style="font-size:.82rem">stats not loaded</span>
+                    }
+                </div>
+            </div>
+            <div class="topbar-actions">
+                @if (App.IsLoading)
+                {
+                    <span class="spinner"></span>
+                }
+                <span class="srcchip"><Icon Name="@(App.SourceNeedsRiotId ? "bolt" : "shield")" Size="14" /> @App.SourceName</span>
+            </div>
+        </header>
+
+        <main class="content">
+            @Body
+        </main>
+    </div>
+</div>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+@code {
+    protected override void OnInitialized() => App.Changed += OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private string AccountLabel => App.SourceNeedsRiotId
+        ? (App.IsConfigured ? $"{App.Account.Name}#{App.Account.Tag}" : "No account set")
+        : "Local Client";
+
+    public void Dispose() => App.Changed -= OnChanged;
+}

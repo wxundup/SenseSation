@@ -1,0 +1,16 @@
+<table>
+    <thead><tr><th>Player</th><th>Rank</th></tr></thead>
+    <tbody>
+        @foreach (var p in Players.OrderByDescending(p => p.Rank.Tier))
+        {
+            <tr class="@(p.IsSelf ? "self-row" : "")">
+                <td><strong>@(string.IsNullOrEmpty(p.Name) ? "Player" : p.DisplayName)</strong>@(p.IsSelf ? " (you)" : "")</td>
+                <td><RankPill Rank="p.Rank" ShowRr="false" /></td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter] public IReadOnlyList<PlayerSummary> Players { get; set; } = [];
+}
