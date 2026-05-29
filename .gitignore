@@ -16,6 +16,9 @@ secrets.json
 # Recordings / clips
 *.mp4
 
+# Release artifacts
+*.zip
+
 # Run logs
 run.log
 run.err.log
