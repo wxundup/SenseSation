@@ -27,9 +27,8 @@ public sealed class RadiantMatchSource(RiotSession session) : IMatchDataSource
 
     public async Task<Rank?> GetRankAsync(RiotId id, CancellationToken ct = default)
     {
-        var pv = await EndpointsAsync(ct);
-        string self = _session.SelfPuuid!;
-        RC.PlayerMMR? mmr = await pv.FetchPlayerMMRAsync(self);
+        string self = await SelfAsync(ct);
+        RC.PlayerMMR? mmr = await _session.ExecuteAsync(i => i.Endpoints.PvpEndpoints.FetchPlayerMMRAsync(self), ct);
         var u = mmr?.LatestCompetitiveUpdate;
         if (u is null) return Rank.Unranked;
         int tier = (int)(u.TierAfterUpdate ?? 0);
@@ -39,9 +38,8 @@ public sealed class RadiantMatchSource(RiotSession session) : IMatchDataSource
 
     public async Task<IReadOnlyList<RrSnapshot>> GetMmrHistoryAsync(RiotId id, CancellationToken ct = default)
     {
-        var pv = await EndpointsAsync(ct);
-        string self = _session.SelfPuuid!;
-        RC.CompetitiveUpdate? cu = await pv.FetchCompetitveUpdatesAsync(self);
+        string self = await SelfAsync(ct);
+        RC.CompetitiveUpdate? cu = await _session.ExecuteAsync(i => i.Endpoints.PvpEndpoints.FetchCompetitveUpdatesAsync(self), ct);
         if (cu?.Matches is null) return [];
 
         var list = new List<RrSnapshot>();
@@ -65,9 +63,8 @@ public sealed class RadiantMatchSource(RiotSession session) : IMatchDataSource
 
     public async Task<IReadOnlyList<MatchSummary>> GetRecentMatchesAsync(RiotId id, int count, CancellationToken ct = default)
     {
-        var pv = await EndpointsAsync(ct);
-        string self = _session.SelfPuuid!;
-        RC.MatchHistory? history = await pv.FetchPlayerMatchHistoryAsync(self);
+        string self = await SelfAsync(ct);
+        RC.MatchHistory? history = await _session.ExecuteAsync(i => i.Endpoints.PvpEndpoints.FetchPlayerMatchHistoryAsync(self), ct);
         if (history?.History is null) return [];
 
         var ids = history.History
@@ -83,7 +80,7 @@ public sealed class RadiantMatchSource(RiotSession session) : IMatchDataSource
             ct.ThrowIfCancellationRequested();
             try
             {
-                RC.MatchInfo? info = await pv.FetchMatchInfoAsync(matchId!);
+                RC.MatchInfo? info = await _session.ExecuteAsync(i => i.Endpoints.PvpEndpoints.FetchMatchInfoAsync(matchId!), ct);
                 var detail = info is null ? null : Parse(info, self);
                 if (detail is not null) result.Add(detail.Summary);
             }
@@ -94,16 +91,16 @@ public sealed class RadiantMatchSource(RiotSession session) : IMatchDataSource
 
     public async Task<MatchDetail?> GetMatchAsync(string region, string matchId, RiotId owner, CancellationToken ct = default)
     {
-        var pv = await EndpointsAsync(ct);
-        RC.MatchInfo? info = await pv.FetchMatchInfoAsync(matchId);
-        return info is null ? null : Parse(info, _session.SelfPuuid!);
+        string self = await SelfAsync(ct);
+        RC.MatchInfo? info = await _session.ExecuteAsync(i => i.Endpoints.PvpEndpoints.FetchMatchInfoAsync(matchId), ct);
+        return info is null ? null : Parse(info, self);
     }
 
-    private async Task<RadiantConnect.Network.PVPEndpoints.PVPEndpoints> EndpointsAsync(CancellationToken ct)
+    private async Task<string> SelfAsync(CancellationToken ct)
     {
         if (!await _session.EnsureConnectedAsync(ct))
             throw new InvalidOperationException(_session.LastError ?? "Riot client not connected. Start Valorant and try again.");
-        return _session.Initiator!.Endpoints.PvpEndpoints;
+        return _session.SelfPuuid!;
     }
 
     // ---- parsing (Riot raw match schema, via RadiantConnect typed records) -----

@@ -94,6 +94,42 @@ public sealed class RiotSession
 
     public void SetError(string? error) => LastError = error;
 
+    /// <summary>Drops the cached session so the next call re-authenticates with a fresh lockfile token.</summary>
+    public void Invalidate() => Initiator = null;
+
+    /// <summary>
+    /// Runs a RadiantConnect call with the live session, re-authenticating once if the
+    /// access token has expired (Riot returns BAD_CLAIMS / "validating/decoding RSO Access Token").
+    /// Tokens live ~1h; the lockfile always yields a fresh one while the client is running.
+    /// </summary>
+    public async Task<T> ExecuteAsync<T>(Func<Initiator, Task<T>> op, CancellationToken ct = default)
+    {
+        if (!await EnsureConnectedAsync(ct))
+            throw new InvalidOperationException(LastError ?? "Riot client not connected.");
+        try
+        {
+            return await op(Initiator!);
+        }
+        catch (Exception ex) when (IsAuthExpired(ex))
+        {
+            Invalidate();
+            if (!await EnsureConnectedAsync(ct))
+                throw new InvalidOperationException(LastError ?? "Riot client reconnect failed.");
+            return await op(Initiator!);
+        }
+    }
+
+    private static bool IsAuthExpired(Exception ex)
+    {
+        string msg = (ex.Message + " " + (ex.InnerException?.Message ?? "")).ToLowerInvariant();
+        return msg.Contains("bad_claims")
+            || msg.Contains("rso access token")
+            || msg.Contains("validating/decoding")
+            || msg.Contains("unauthorized")
+            || msg.Contains("\"httpstatus\": 401")
+            || msg.Contains("\"httpstatus\": 400");
+    }
+
     private static bool ProcessRunning(string name)
     {
         try { return System.Diagnostics.Process.GetProcessesByName(name).Length > 0; }

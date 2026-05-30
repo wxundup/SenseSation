@@ -32,12 +32,13 @@ public sealed class RadiantConnectClient(RiotSession session) : ILiveClient
     public async Task<LiveLobby?> GetCurrentLobbyAsync(CancellationToken ct = default)
     {
         if (!await _session.EnsureConnectedAsync(ct)) return null;
-        var initiator = _session.Initiator!;
 
         try
         {
             // CoreGame (INGAME) exposes both teams; this is where enemy ranks are visible.
-            var match = await initiator.Endpoints.CurrentGameEndpoints.GetCurrentGameMatchAsync();
+            // Routed through ExecuteAsync so an expired access token re-auths and retries.
+            var match = await _session.ExecuteAsync(
+                init => init.Endpoints.CurrentGameEndpoints.GetCurrentGameMatchAsync(), ct);
             if (match is null)
             {
                 _session.SetError("Connected, but no in-game match found yet. Enemy ranks appear once the round starts (not during agent select).");
@@ -52,7 +53,7 @@ public sealed class RadiantConnectClient(RiotSession session) : ILiveClient
             var puuids = rawPlayers
                 .Select(p => ReflectionHelpers.GetString(p, "Subject") ?? "")
                 .Where(s => s.Length > 0).ToArray();
-            var nameMap = await ResolveNamesAsync(initiator, puuids);
+            var nameMap = await ResolveNamesAsync(puuids, ct);
 
             string? selfTeam = rawPlayers
                 .FirstOrDefault(p => ReflectionHelpers.GetString(p, "Subject") == self) is { } meRow
@@ -64,7 +65,7 @@ public sealed class RadiantConnectClient(RiotSession session) : ILiveClient
             {
                 string puuid = ReflectionHelpers.GetString(p, "Subject") ?? "";
                 string teamId = ReflectionHelpers.GetString(p, "TeamId") ?? "";
-                int tier = await FetchTierAsync(initiator, puuid);
+                int tier = await FetchTierAsync(puuid, ct);
                 nameMap.TryGetValue(puuid, out var nt);
 
                 summaries.Add(new PlayerSummary
@@ -104,12 +105,13 @@ public sealed class RadiantConnectClient(RiotSession session) : ILiveClient
         }
     }
 
-    private async Task<int> FetchTierAsync(Initiator initiator, string puuid)
+    private async Task<int> FetchTierAsync(string puuid, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(puuid)) return 0;
         try
         {
-            RC.PlayerMMR? mmr = await initiator.Endpoints.PvpEndpoints.FetchPlayerMMRAsync(puuid);
+            RC.PlayerMMR? mmr = await _session.ExecuteAsync(
+                init => init.Endpoints.PvpEndpoints.FetchPlayerMMRAsync(puuid), ct);
             int tier = (int)(mmr?.LatestCompetitiveUpdate?.TierAfterUpdate ?? 0);
             // Fall back to the seasonal competitive tier when the latest update is unrated (0).
             if (tier == 0) tier = ReflectionHelpers.FindInt(mmr, TierNames) ?? 0;
@@ -118,14 +120,15 @@ public sealed class RadiantConnectClient(RiotSession session) : ILiveClient
         catch { return 0; }
     }
 
-    private static async Task<Dictionary<string, (string? name, string? tag)>> ResolveNamesAsync(
-        Initiator initiator, string[] puuids)
+    private async Task<Dictionary<string, (string? name, string? tag)>> ResolveNamesAsync(
+        string[] puuids, CancellationToken ct)
     {
         var map = new Dictionary<string, (string?, string?)>();
         if (puuids.Length == 0) return map;
         try
         {
-            var names = await initiator.Endpoints.PvpEndpoints.FetchNameServiceReturn(puuids);
+            var names = await _session.ExecuteAsync(
+                init => init.Endpoints.PvpEndpoints.FetchNameServiceReturn(puuids), ct);
             foreach (var n in ReflectionHelpers.AsEnumerable(names))
             {
                 string? id = ReflectionHelpers.GetString(n, "Subject", "Puuid");
