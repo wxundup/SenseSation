@@ -54,6 +54,9 @@ public interface ILiveClient
 
     /// <summary>Current pre-game/in-game lobby with resolved ranks, or null if not in a match.</summary>
     Task<LiveLobby?> GetCurrentLobbyAsync(CancellationToken ct = default);
+
+    /// <summary>A lobby player's rank + recent competitive matches (public account data), or null.</summary>
+    Task<PlayerCareer?> GetCareerAsync(string puuid, CancellationToken ct = default);
 }
 
 /// <summary>Local persistence for match history, RR snapshots, and cached scoreboards.</summary>

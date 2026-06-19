@@ -19,6 +19,25 @@ public sealed record LiveLobby
     public double AverageEnemyTier => Enemies.Count == 0 ? 0 : Enemies.Average(p => p.Rank.Tier);
 }
 
+/// <summary>
+/// A lobby player's public career snapshot: current rank plus recent competitive
+/// matches. Same account metadata in-client trackers (Tracker.gg, Blitz) show.
+/// </summary>
+public sealed record PlayerCareer
+{
+    public required string Puuid { get; init; }
+    public string Name { get; init; } = "";
+    public string Tag { get; init; } = "";
+    public Rank Rank { get; init; } = Rank.Unranked;
+    public IReadOnlyList<MatchSummary> Recent { get; init; } = [];
+
+    public string DisplayName => string.IsNullOrEmpty(Tag) ? (string.IsNullOrEmpty(Name) ? "Player" : Name) : $"{Name}#{Tag}";
+    public int Wins => Recent.Count(m => m.Result == MatchResult.Win);
+    public int Losses => Recent.Count(m => m.Result == MatchResult.Loss);
+    public double WinRate => Recent.Count == 0 ? 0 : Math.Round(100.0 * Wins / Recent.Count, 0);
+    public double AvgKd => Recent.Count == 0 ? 0 : Math.Round(Recent.Average(m => m.You.Kd), 2);
+}
+
 /// <summary>Snapshot of whether the local Riot client looks reachable, for diagnostics.</summary>
 public sealed record LiveEnvironment
 {

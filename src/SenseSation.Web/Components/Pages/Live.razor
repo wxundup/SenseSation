@@ -51,7 +51,7 @@
     <div class="grid cols-2">
         <div class="card">
             <h3>Your Team · avg @TierName(_lobby.AverageAllyTier)</h3>
-            <TeamTable Players="_lobby.Allies" />
+            <TeamTable Players="_lobby.Allies" OnSelect="ViewCareer" />
         </div>
         <div class="card">
             <h3>Enemy Team · avg @TierName(_lobby.AverageEnemyTier)</h3>
@@ -61,10 +61,60 @@
             }
             else
             {
-                <TeamTable Players="_lobby.Enemies" />
+                <TeamTable Players="_lobby.Enemies" OnSelect="ViewCareer" />
             }
         </div>
     </div>
+
+    @if (_careerOpen)
+    {
+        <div class="card" style="margin-top:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <h3 style="margin:0">Career · @(_career?.DisplayName ?? _careerName)</h3>
+                <button class="btn" @onclick="() => _careerOpen = false">✕ Close</button>
+            </div>
+
+            @if (_careerLoading)
+            {
+                <div class="banner info"><span class="spinner"></span> &nbsp;Loading career…</div>
+            }
+            else if (_career is null)
+            {
+                <p class="muted">@(_careerError ?? "Couldn't load this player's career.")</p>
+            }
+            else
+            {
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+                    <RankPill Rank="_career.Rank" />
+                    <span class="chip">@_career.Recent.Count games</span>
+                    <span class="chip @(_career.WinRate >= 50 ? "" : "")">@_career.WinRate.ToString("0")% WR · @_career.Wins W-@_career.Losses L</span>
+                    <span class="chip">@_career.AvgKd.ToString("0.00") avg K/D</span>
+                </div>
+                @if (_career.Recent.Count == 0)
+                {
+                    <p class="muted">No recent competitive matches available.</p>
+                }
+                else
+                {
+                    <table>
+                        <thead><tr><th>Result</th><th>Agent</th><th>Map</th><th>Score</th><th>K / D / A</th><th>HS%</th></tr></thead>
+                        <tbody>
+                            @foreach (var m in _career.Recent)
+                            {
+                                <tr>
+                                    <td class="@ResultClass(m.Result)">@m.Result.ToString().ToUpper()</td>
+                                    <td>@m.Agent</td><td>@m.Map</td>
+                                    <td class="mono">@m.ScoreLabel</td>
+                                    <td class="mono">@m.You.Kills / @m.You.Deaths / @m.You.Assists</td>
+                                    <td class="mono">@m.You.HeadshotPct%</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            }
+        </div>
+    }
 }
 else if (!_busy)
 {
@@ -122,6 +172,35 @@ else if (!_busy)
     }
 
     private static string TierName(double avg) => RankTable.NameFor((int)Math.Round(avg));
+
+    // ---- career viewer -------------------------------------------------------
+    private bool _careerOpen;
+    private bool _careerLoading;
+    private string _careerName = "";
+    private string? _careerError;
+    private PlayerCareer? _career;
+
+    private async Task ViewCareer(PlayerSummary p)
+    {
+        _careerOpen = true;
+        _careerLoading = true;
+        _career = null;
+        _careerError = null;
+        _careerName = string.IsNullOrEmpty(p.Name) ? "Player" : p.DisplayName;
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+            _career = await Client.GetCareerAsync(p.Puuid);
+            if (_career is null) _careerError = Client.LastError ?? "No career data.";
+        }
+        catch (Exception ex) { _careerError = ex.Message; }
+        finally { _careerLoading = false; await InvokeAsync(StateHasChanged); }
+    }
+
+    private static string ResultClass(MatchResult r) => r switch
+    {
+        MatchResult.Win => "tag-win", MatchResult.Loss => "tag-loss", _ => "tag-draw"
+    };
 
     public void Dispose() => _timer?.Dispose();
 }

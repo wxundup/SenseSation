@@ -2,6 +2,7 @@
 [Bb]in/
 [Oo]bj/
 dist/
+SenseSation-win-x64/
 *.user
 .vs/
 

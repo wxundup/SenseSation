@@ -105,7 +105,7 @@ public sealed class RadiantMatchSource(RiotSession session) : IMatchDataSource
 
     // ---- parsing (Riot raw match schema, via RadiantConnect typed records) -----
 
-    private static MatchDetail? Parse(RC.MatchInfo info, string selfPuuid)
+    internal static MatchDetail? Parse(RC.MatchInfo info, string selfPuuid)
     {
         var players = info.Players;
         if (players is null || players.Count == 0) return null;

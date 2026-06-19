@@ -105,6 +105,61 @@ public sealed class RadiantConnectClient(RiotSession session) : ILiveClient
         }
     }
 
+    public async Task<PlayerCareer?> GetCareerAsync(string puuid, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(puuid)) return null;
+        if (!await _session.EnsureConnectedAsync(ct)) return null;
+
+        try
+        {
+            // Current rank + RR.
+            RC.PlayerMMR? mmr = await _session.ExecuteAsync(
+                i => i.Endpoints.PvpEndpoints.FetchPlayerMMRAsync(puuid), ct);
+            var u = mmr?.LatestCompetitiveUpdate;
+            int tier = (int)(u?.TierAfterUpdate ?? 0);
+            if (tier == 0) tier = ReflectionHelpers.FindInt(mmr, TierNames) ?? 0;
+            var rank = RankTable.Make(tier, (int)(u?.RankedRatingAfterUpdate ?? 0));
+
+            // Recent competitive matches → that player's line via the shared parser.
+            RC.MatchHistory? history = await _session.ExecuteAsync(
+                i => i.Endpoints.PvpEndpoints.FetchPlayerMatchHistoryAsync(puuid), ct);
+            var ids = (history?.History ?? [])
+                .Where(h => string.Equals(h.QueueId, "competitive", StringComparison.OrdinalIgnoreCase))
+                .Select(h => h.MatchId).Where(s => !string.IsNullOrEmpty(s)).Take(5).ToList();
+
+            var recent = new List<MatchSummary>();
+            foreach (var mid in ids)
+            {
+                ct.ThrowIfCancellationRequested();
+                try
+                {
+                    RC.MatchInfo? info = await _session.ExecuteAsync(
+                        i => i.Endpoints.PvpEndpoints.FetchMatchInfoAsync(mid!), ct);
+                    var detail = info is null ? null : RadiantMatchSource.Parse(info, puuid);
+                    if (detail is not null) recent.Add(detail.Summary);
+                }
+                catch { /* skip a match that fails to load */ }
+            }
+
+            var nameMap = await ResolveNamesAsync([puuid], ct);
+            nameMap.TryGetValue(puuid, out var nt);
+
+            return new PlayerCareer
+            {
+                Puuid = puuid,
+                Name = nt.name ?? "",
+                Tag = nt.tag ?? "",
+                Rank = rank,
+                Recent = recent,
+            };
+        }
+        catch (Exception ex)
+        {
+            _session.SetError($"Career read failed: {ex.Message}");
+            return null;
+        }
+    }
+
     private async Task<int> FetchTierAsync(string puuid, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(puuid)) return 0;
