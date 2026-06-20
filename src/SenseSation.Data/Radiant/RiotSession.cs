@@ -127,7 +127,10 @@ public sealed class RiotSession
             || msg.Contains("validating/decoding")
             || msg.Contains("unauthorized")
             || msg.Contains("\"httpstatus\": 401")
-            || msg.Contains("\"httpstatus\": 400");
+            || msg.Contains("\"httpstatus\": 400")
+            // RadiantConnect masks an expired-token failure as retry exhaustion.
+            || msg.Contains("failed after")
+            || msg.Contains("retries");
     }
 
     private static bool ProcessRunning(string name)

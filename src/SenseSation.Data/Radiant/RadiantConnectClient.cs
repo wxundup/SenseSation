@@ -110,24 +110,28 @@ public sealed class RadiantConnectClient(RiotSession session) : ILiveClient
         if (string.IsNullOrEmpty(puuid)) return null;
         if (!await _session.EnsureConnectedAsync(ct)) return null;
 
+        // Each piece is independent — a failed rank shouldn't kill the match list, etc.
+        var rank = Rank.Unranked;
         try
         {
-            // Current rank + RR.
             RC.PlayerMMR? mmr = await _session.ExecuteAsync(
                 i => i.Endpoints.PvpEndpoints.FetchPlayerMMRAsync(puuid), ct);
             var u = mmr?.LatestCompetitiveUpdate;
             int tier = (int)(u?.TierAfterUpdate ?? 0);
             if (tier == 0) tier = ReflectionHelpers.FindInt(mmr, TierNames) ?? 0;
-            var rank = RankTable.Make(tier, (int)(u?.RankedRatingAfterUpdate ?? 0));
+            rank = RankTable.Make(tier, (int)(u?.RankedRatingAfterUpdate ?? 0));
+        }
+        catch { /* rank may be hidden/restricted for other players */ }
 
-            // Recent competitive matches → that player's line via the shared parser.
+        var recent = new List<MatchSummary>();
+        try
+        {
             RC.MatchHistory? history = await _session.ExecuteAsync(
                 i => i.Endpoints.PvpEndpoints.FetchPlayerMatchHistoryAsync(puuid), ct);
             var ids = (history?.History ?? [])
                 .Where(h => string.Equals(h.QueueId, "competitive", StringComparison.OrdinalIgnoreCase))
                 .Select(h => h.MatchId).Where(s => !string.IsNullOrEmpty(s)).Take(5).ToList();
 
-            var recent = new List<MatchSummary>();
             foreach (var mid in ids)
             {
                 ct.ThrowIfCancellationRequested();
@@ -140,24 +144,26 @@ public sealed class RadiantConnectClient(RiotSession session) : ILiveClient
                 }
                 catch { /* skip a match that fails to load */ }
             }
-
-            var nameMap = await ResolveNamesAsync([puuid], ct);
-            nameMap.TryGetValue(puuid, out var nt);
-
-            return new PlayerCareer
-            {
-                Puuid = puuid,
-                Name = nt.name ?? "",
-                Tag = nt.tag ?? "",
-                Rank = rank,
-                Recent = recent,
-            };
         }
         catch (Exception ex)
         {
-            _session.SetError($"Career read failed: {ex.Message}");
-            return null;
+            // Only a hard failure with nothing to show is an error.
+            if (rank.Tier == 0)
+            {
+                _session.SetError($"Career read failed: {ex.Message}");
+                return null;
+            }
         }
+
+        string name = "", tag = "";
+        try
+        {
+            var nameMap = await ResolveNamesAsync([puuid], ct);
+            if (nameMap.TryGetValue(puuid, out var nt)) { name = nt.name ?? ""; tag = nt.tag ?? ""; }
+        }
+        catch { }
+
+        return new PlayerCareer { Puuid = puuid, Name = name, Tag = tag, Rank = rank, Recent = recent };
     }
 
     public async Task<PreGameLobby?> GetPreGameAsync(CancellationToken ct = default)
