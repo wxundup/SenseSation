@@ -196,17 +196,25 @@
 
         var self = _pre.Allies.FirstOrDefault(a => a.Puuid == Client.SelfPuuid);
         if (string.IsNullOrEmpty(self.Puuid)) return; // can't identify self yet — don't guess
-        if (self.Locked) return;                      // already locked (state string, GUID-independent)
+        if (self.Locked) return;                      // already locked, done
 
-        // Menu is loaded (past the grace) → hover then lock with a tiny gap. Retries each poll
-        // until the game reports us locked. Uses the lock STATE, not the agent/GUID table, so it
-        // works for every agent regardless of icon-table accuracy.
-        await RunAsync(async () =>
+        string current = self.CharacterId is not null ? CharacterTable.Name(self.CharacterId) : "";
+
+        if (!current.Equals(_selected, StringComparison.OrdinalIgnoreCase))
         {
-            await Client.SelectAgentAsync(_selected);
-            await Task.Delay(SettleMs);
-            await Client.LockAgentAsync(_selected);
-        });
+            // Step 1: HOVER only. Don't lock yet — let the hover show on screen.
+            await RunAsync(() => Client.SelectAgentAsync(_selected));
+        }
+        else
+        {
+            // Step 2: the game confirms our agent is hovered and showing (a poll later, so the
+            // hover has been visible ~1s). Now lock, after a brief beat.
+            await RunAsync(async () =>
+            {
+                await Task.Delay(SettleMs);
+                await Client.LockAgentAsync(_selected);
+            });
+        }
     }
 
     private async Task RunAsync(Func<Task> op)
