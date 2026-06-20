@@ -132,9 +132,14 @@
         try
         {
             if (!Client.IsConnected) await Client.ConnectAsync();
-            _pre = await Client.GetPreGameAsync();
-            // Surface real failures (incl. "Pre-game read failed: ..."), hide idle/lobby states.
-            _error = RealError(Client.LastError);
+            var pre = await Client.GetPreGameAsync();
+            var err = Client.LastError ?? "";
+            if (pre is not null) _pre = pre;
+            else if (!err.Contains("read failed", StringComparison.OrdinalIgnoreCase)) _pre = null; // genuinely not in pregame
+            // else: transient read glitch — keep the last _pre so we don't lose the lock sequence.
+
+            // Only surface an error when we have nothing to show.
+            _error = _pre is null ? RealError(Client.LastError) : null;
 
             await DriveSelectionAsync();
         }

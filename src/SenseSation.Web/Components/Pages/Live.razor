@@ -156,9 +156,28 @@ else if (!_busy)
                 await Client.ConnectAsync();
 
             if (Client.IsConnected)
-                _lobby = await Client.GetCurrentLobbyAsync();
+            {
+                var lobby = await Client.GetCurrentLobbyAsync();
+                var err = Client.LastError ?? "";
+                if (lobby is not null)
+                {
+                    _lobby = lobby;
+                    _error = null;
+                }
+                else if (err.Contains("Lobby read failed", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Transient read glitch (state transition) — keep the last lobby, don't flash the error.
+                    _error = _lobby is null ? null : _error;
+                }
+                else
+                {
+                    // Genuine "no match" — clear the stale lobby.
+                    _lobby = null;
+                    _error = null;
+                }
+            }
+            else _error = Client.LastError;
 
-            _error = Client.LastError;
             _status = Client.IsConnected
                 ? (_lobby is not null ? "In a match" : "Connected to local client")
                 : _env.Describe();
