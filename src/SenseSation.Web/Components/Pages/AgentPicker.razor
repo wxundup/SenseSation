@@ -107,10 +107,9 @@
     private string? _error;
     private bool _scanning;
     private bool _busy;             // a select/lock call is in flight
-    private DateTime? _hoverConfirmedAt; // when the game first reported our agent hovered
     private Timer? _timer;
 
-    private const int SettleMs = 1500; // wait after the hover is confirmed before locking
+    private const int SettleMs = 30; // brief hover after the menu confirms it, then lock
 
     protected override void OnInitialized()
     {
@@ -142,10 +141,7 @@
     private async Task DriveSelectionAsync()
     {
         if (_selected is null || _pre is not { IsAgentSelect: true } || _busy)
-        {
-            if (_pre is not { IsAgentSelect: true }) _hoverConfirmedAt = null;
             return;
-        }
 
         var self = _pre.Allies.FirstOrDefault(a => a.Puuid == Client.SelfPuuid);
         if (string.IsNullOrEmpty(self.Puuid)) self = _pre.Allies.FirstOrDefault(); // fallback
@@ -156,15 +152,16 @@
         if (!current.Equals(_selected, StringComparison.OrdinalIgnoreCase))
         {
             // Menu may still be loading — the hover won't stick until it's interactive.
-            _hoverConfirmedAt = null;
             await RunAsync(() => Client.SelectAgentAsync(_selected));
         }
         else
         {
-            // Game confirms our agent is hovered → the menu is loaded.
-            _hoverConfirmedAt ??= DateTime.UtcNow;
-            if ((DateTime.UtcNow - _hoverConfirmedAt.Value).TotalMilliseconds >= SettleMs)
-                await RunAsync(() => Client.LockAgentAsync(_selected));
+            // Game confirms our agent is hovered (menu loaded) → brief pause, then lock.
+            await RunAsync(async () =>
+            {
+                await Task.Delay(SettleMs);
+                await Client.LockAgentAsync(_selected);
+            });
         }
     }
 
@@ -181,7 +178,6 @@
     private Task PreSelect(string agent)
     {
         _selected = agent;
-        _hoverConfirmedAt = null;
         _error = null;
         // The poll drives hover + confirmed-lock uniformly (also when buffered before the match).
         return Task.CompletedTask;
