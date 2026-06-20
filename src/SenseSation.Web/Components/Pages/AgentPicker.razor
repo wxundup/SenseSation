@@ -32,11 +32,8 @@
 
 @if (_selected is not null)
 {
-    <div class="banner info" style="justify-content:space-between">
-        <span>Pre-selected: <strong>@_selected</strong>@(_pre is not null ? " on " + _pre.Map : "")</span>
-        <button class="btn primary" style="background:var(--teal)" @onclick="Lock" disabled="@_locking">
-            @(_locking ? "Locking…" : "🔒 Lock In")
-        </button>
+    <div class="banner info">
+        <span>@(AutoLabel)</span>
     </div>
 }
 
@@ -85,10 +82,6 @@
                 </div>
                 <div class="muted" style="font-size:.68rem;margin-top:4px">@st.matches game@(st.matches == 1 ? "" : "s")</div>
             }
-            else
-            {
-                <div class="muted" style="font-size:.76rem">no data</div>
-            }
         </div>
     }
 </div>
@@ -98,8 +91,12 @@
     private string? _selected;
     private string? _error;
     private bool _scanning;
-    private bool _locking;
+    private bool _autoLocked;
     private Timer? _timer;
+
+    private string AutoLabel => _autoLocked
+        ? $"Locked in: <strong>{_selected}</strong> on {_pre?.Map ?? "?"}"
+        : $"Pre-selected: <strong>{_selected}</strong> on {_pre?.Map ?? "?"} — locking at agent select";
 
     protected override void OnInitialized()
     {
@@ -115,6 +112,10 @@
             if (!Client.IsConnected) await Client.ConnectAsync();
             if (Client.IsConnected) _pre = await Client.GetPreGameAsync();
             if (Client.LastError is { } e && _pre is null) _error = e; else _error = null;
+
+            // Auto-lock when agent select starts and we have a pre-selection queued.
+            if (_pre?.IsAgentSelect == true && _selected != null && !_autoLocked)
+                await Lock();
         }
         catch { }
         finally { _scanning = false; await InvokeAsync(StateHasChanged); }
@@ -125,6 +126,7 @@
     private async Task PreSelect(string agent)
     {
         _selected = agent;
+        _autoLocked = false;
         _error = null;
         try { await Client.SelectAgentAsync(agent); }
         catch (Exception ex) { _error = ex.Message; }
@@ -133,10 +135,8 @@
     private async Task Lock()
     {
         if (_selected is null) return;
-        _locking = true;
-        try { await Client.LockAgentAsync(_selected); _error = null; }
+        try { await Client.LockAgentAsync(_selected); _error = null; _autoLocked = true; }
         catch (Exception ex) { _error = ex.Message; }
-        finally { _locking = false; }
     }
 
     // Compute per-agent stats from loaded match history.
