@@ -217,7 +217,12 @@ public sealed class RadiantConnectClient(RiotSession session) : ILiveClient
 
     private static bool TryParseAgent(string name, out RadiantConnect.Methods.ValorantTables.Agent agent)
     {
-        // Normalize display names (KAY/O, ISO) to enum names (KAY_O, ISO)
+        // KAYO / KAY/O -> enum KAY_O (the underscore can't be derived by replacement alone).
+        if (name.Replace("/", "").Equals("KAYO", StringComparison.OrdinalIgnoreCase))
+        {
+            agent = RadiantConnect.Methods.ValorantTables.Agent.KAY_O;
+            return true;
+        }
         string key = name.Replace("/", "_").Replace("-", "_").Replace(" ", "_");
         return Enum.TryParse(key, true, out agent);
     }

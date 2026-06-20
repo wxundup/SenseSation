@@ -32,15 +32,26 @@
 
 @if (_selected is not null)
 {
-    <div class="banner info" style="justify-content:space-between">
+    <div class="banner @(SelfLocked ? "" : "info")" style="justify-content:space-between;@(SelfLocked ? "background:rgba(27,216,160,.12);border-color:rgba(27,216,160,.4);color:var(--win)" : "")">
         <span style="display:flex;align-items:center;gap:10px">
             <img src="/agents/@(_selected).png" alt="@_selected" style="width:24px;height:24px;border-radius:4px" />
-            Pre-selected: <strong>@_selected</strong>
-            @(_pre is { IsAgentSelect: true } ? "on " + _pre.Map + " — locking in" : "— auto-locks when agent select loads")
+            @if (SelfLocked)
+            {
+                <span>✓ Locked in: <strong>@_selected</strong></span>
+            }
+            else
+            {
+                <span>Pre-selected: <strong>@_selected</strong>
+                    @(_pre is { IsAgentSelect: true } ? "on " + _pre.Map + " — locking in" : "— auto-locks when agent select loads")
+                </span>
+            }
         </span>
-        <button class="btn" style="background:var(--teal);color:#06231f" @onclick="ForceLock" disabled="@_busy">
-            🔒 Lock @_selected now
-        </button>
+        @if (!SelfLocked)
+        {
+            <button class="btn" style="background:var(--teal);color:#06231f" @onclick="ForceLock" disabled="@_busy">
+                🔒 Lock @_selected now
+            </button>
+        }
     </div>
 }
 
@@ -205,6 +216,9 @@
         catch (Exception ex) { await InvokeAsync(() => { _error = ex.Message; StateHasChanged(); }); }
         finally { _busy = false; }
     }
+
+    // True once the game reports our own player locked in.
+    private bool SelfLocked => _pre?.Allies.FirstOrDefault(a => a.Puuid == Client.SelfPuuid).Locked ?? false;
 
     private async Task ScanNow() => await Poll();
 
