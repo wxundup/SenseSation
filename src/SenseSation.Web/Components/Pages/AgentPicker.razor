@@ -32,11 +32,15 @@
 
 @if (_selected is not null)
 {
-    <div class="banner info">
-        <img src="/agents/@(_selected).png" alt="@_selected" style="width:24px;height:24px;border-radius:4px" />
-        <span>Pre-selected: <strong>@_selected</strong>
-            @(_pre is { IsAgentSelect: true } ? " on " + _pre.Map + " — locking in" : " — will select & lock when agent select loads")
+    <div class="banner info" style="justify-content:space-between">
+        <span style="display:flex;align-items:center;gap:10px">
+            <img src="/agents/@(_selected).png" alt="@_selected" style="width:24px;height:24px;border-radius:4px" />
+            Pre-selected: <strong>@_selected</strong>
+            @(_pre is { IsAgentSelect: true } ? "on " + _pre.Map + " — locking in" : "— auto-locks when agent select loads")
         </span>
+        <button class="btn" style="background:var(--teal);color:#06231f" @onclick="ForceLock" disabled="@_busy">
+            🔒 Lock @_selected now
+        </button>
     </div>
 }
 
@@ -129,8 +133,8 @@
         {
             if (!Client.IsConnected) await Client.ConnectAsync();
             _pre = await Client.GetPreGameAsync();
-            // Only surface connection failures here; idle/lobby states aren't errors in the picker.
-            _error = Client.IsConnected ? null : Client.LastError;
+            // Surface real failures (incl. "Pre-game read failed: ..."), hide idle/lobby states.
+            _error = RealError(Client.LastError);
 
             await DriveSelectionAsync();
         }
@@ -196,6 +200,27 @@
     }
 
     private async Task ScanNow() => await Poll();
+
+    /// <summary>Manual fallback: hover + lock the selected agent now, even if auto-detect missed.</summary>
+    private async Task ForceLock()
+    {
+        if (_selected is null) return;
+        await RunAsync(async () =>
+        {
+            await Client.SelectAgentAsync(_selected);
+            await Task.Delay(SettleMs);
+            await Client.LockAgentAsync(_selected);
+        });
+    }
+
+    private static string? RealError(string? e)
+    {
+        if (string.IsNullOrWhiteSpace(e)) return null;
+        var l = e.ToLowerInvariant();
+        return (l.Contains("failed") || l.Contains("not running") || l.Contains("lockfile")
+                || l.Contains("administrator") || l.Contains("could not") || l.Contains("session"))
+            ? e : null;
+    }
 
     private Task PreSelect(string agent)
     {
