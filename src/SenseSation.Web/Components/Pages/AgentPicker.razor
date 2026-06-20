@@ -116,8 +116,10 @@
     private bool _disposed;
     private Timer? _timer;
 
-    private const int PreHoverMs = 1000; // wait after detecting agent select so the menu renders
-    private const int SettleMs = 150;    // tiny gap between hover and lock
+    // The API flips to character_select_active during the map load screen, before the menu
+    // renders. Wait out the load/fade so we only hover+lock once the menu is actually up.
+    private const int PreHoverMs = 3500; // grace after detecting agent select (covers map load)
+    private const int SettleMs = 600;    // brief visible hover in the menu, then lock
 
     protected override void OnInitialized()
     {
