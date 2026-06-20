@@ -125,7 +125,9 @@
         {
             if (!Client.IsConnected) await Client.ConnectAsync();
             _pre = await Client.GetPreGameAsync();
-            if (Client.LastError is { } e && _pre is null) _error = e; else _error = null;
+            // Only surface connection failures here. "No pre-game / no match" is a normal idle
+            // state, and lobby-specific messages (shared LastError) must not leak into the picker.
+            _error = Client.IsConnected ? null : Client.LastError;
 
             // Fire the buffered pre-select + lock the instant character select is detected.
             if (_selected is not null && _pre is { IsAgentSelect: true } && _pre.MatchId != _sentForMatch)

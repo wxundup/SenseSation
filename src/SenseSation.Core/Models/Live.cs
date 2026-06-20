@@ -49,7 +49,8 @@ public sealed record PreGameLobby
     /// <summary>Agents already locked by your teammates + self (Subject, CharacterId, locked?).</summary>
     public IReadOnlyList<(string Puuid, string? CharacterId, bool Locked)> Allies { get; init; } = [];
 
-    public bool IsAgentSelect => Phase.Equals("character_select", StringComparison.OrdinalIgnoreCase);
+    // Riot reports "character_select_active" while picking; match any character_select phase.
+    public bool IsAgentSelect => Phase.StartsWith("character_select", StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>Snapshot of whether the local Riot client looks reachable, for diagnostics.</summary>
