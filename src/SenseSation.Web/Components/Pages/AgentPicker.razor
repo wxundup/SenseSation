@@ -109,9 +109,12 @@
     private string? _sentForMatch;
     private Timer? _timer;
 
+    private const int LockDelayMs = 150; // hover, then lock shortly after
+
     protected override void OnInitialized()
     {
-        _timer = new Timer(async _ => await Poll(), null, TimeSpan.Zero, TimeSpan.FromSeconds(1500));
+        // Poll fast so we detect entering character select within a couple seconds.
+        _timer = new Timer(async _ => await Poll(), null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
     }
 
     private async Task Poll()
@@ -125,29 +128,14 @@
             if (Client.LastError is { } e && _pre is null) _error = e; else _error = null;
 
             // Fire the buffered pre-select + lock the instant character select is detected.
-            if (_selected is not null && _pre is { IsAgentSelect: true }
-                && _pre.MatchId != _sentForMatch)
+            if (_selected is not null && _pre is { IsAgentSelect: true } && _pre.MatchId != _sentForMatch)
             {
                 _sentForMatch = _pre.MatchId;
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await Client.SelectAgentAsync(_selected);
-                        await Task.Delay(200);
-                        await Client.LockAgentAsync(_selected);
-                        _error = null;
-                    }
-                    catch (Exception ex)
-                    {
-                        // Surface error but don't block the poll.
-                        await InvokeAsync(() => { _error = ex.Message; StateHasChanged(); });
-                    }
-                });
+                _ = SelectAndLockAsync(_selected);
             }
             else if (_pre is not null && _pre.MatchId != _sentForMatch && !_pre.IsAgentSelect)
             {
-                _sentForMatch = null;
+                _sentForMatch = null; // new lobby, not yet in select — re-arm
             }
         }
         catch { }
@@ -159,11 +147,34 @@
     private async Task PreSelect(string agent)
     {
         _selected = agent;
-        _sentForMatch = null;
         _error = null;
-        // Always try the call — don't gate on detection state.
-        try { await Client.SelectAgentAsync(agent); }
-        catch (Exception ex) { _error = "Pre-game not ready — your pick will select & lock when it loads."; }
+
+        if (_pre is { IsAgentSelect: true })
+        {
+            // Already in agent select — hover + lock now.
+            _sentForMatch = _pre.MatchId;
+            _ = SelectAndLockAsync(agent);
+        }
+        else
+        {
+            // Buffer: the poll fires it the moment character select loads.
+            _sentForMatch = null;
+        }
+    }
+
+    private async Task SelectAndLockAsync(string agent)
+    {
+        try
+        {
+            await Client.SelectAgentAsync(agent);
+            await Task.Delay(LockDelayMs);
+            await Client.LockAgentAsync(agent);
+            await InvokeAsync(() => { _error = null; StateHasChanged(); });
+        }
+        catch (Exception ex)
+        {
+            await InvokeAsync(() => { _error = ex.Message; StateHasChanged(); });
+        }
     }
 
     private (int matches, int wins, int losses, double winRate, double kd) GetStats(string agent)
