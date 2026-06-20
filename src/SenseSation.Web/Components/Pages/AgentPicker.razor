@@ -106,15 +106,16 @@
     private string? _selected;
     private string? _error;
     private bool _scanning;
-    private string? _sentForMatch;
+    private bool _busy;             // a select/lock call is in flight
+    private DateTime? _hoverConfirmedAt; // when the game first reported our agent hovered
     private Timer? _timer;
 
-    private const int LockDelayMs = 1500; // hover, wait, then lock so the hover is visible
+    private const int SettleMs = 1500; // wait after the hover is confirmed before locking
 
     protected override void OnInitialized()
     {
-        // Poll fast so we detect entering character select within a couple seconds.
-        _timer = new Timer(async _ => await Poll(), null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
+        // Poll once a second so we react quickly to entering character select.
+        _timer = new Timer(async _ => await Poll(), null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
     }
 
     private async Task Poll()
@@ -125,58 +126,65 @@
         {
             if (!Client.IsConnected) await Client.ConnectAsync();
             _pre = await Client.GetPreGameAsync();
-            // Only surface connection failures here. "No pre-game / no match" is a normal idle
-            // state, and lobby-specific messages (shared LastError) must not leak into the picker.
+            // Only surface connection failures here; idle/lobby states aren't errors in the picker.
             _error = Client.IsConnected ? null : Client.LastError;
 
-            // Fire the buffered pre-select + lock the instant character select is detected.
-            if (_selected is not null && _pre is { IsAgentSelect: true } && _pre.MatchId != _sentForMatch)
-            {
-                _sentForMatch = _pre.MatchId;
-                _ = SelectAndLockAsync(_selected);
-            }
-            else if (_pre is not null && _pre.MatchId != _sentForMatch && !_pre.IsAgentSelect)
-            {
-                _sentForMatch = null; // new lobby, not yet in select — re-arm
-            }
+            await DriveSelectionAsync();
         }
         catch { }
         finally { _scanning = false; await InvokeAsync(StateHasChanged); }
     }
 
-    private async Task ScanNow() => await Poll();
-
-    private async Task PreSelect(string agent)
+    /// <summary>
+    /// Reads the live pre-game state and only locks once the game CONFIRMS our agent is
+    /// hovered (which can only happen once the menu is fully loaded), then after a settle delay.
+    /// </summary>
+    private async Task DriveSelectionAsync()
     {
-        _selected = agent;
-        _error = null;
-
-        if (_pre is { IsAgentSelect: true })
+        if (_selected is null || _pre is not { IsAgentSelect: true } || _busy)
         {
-            // Already in agent select — hover + lock now.
-            _sentForMatch = _pre.MatchId;
-            _ = SelectAndLockAsync(agent);
+            if (_pre is not { IsAgentSelect: true }) _hoverConfirmedAt = null;
+            return;
+        }
+
+        var self = _pre.Allies.FirstOrDefault(a => a.Puuid == Client.SelfPuuid);
+        if (string.IsNullOrEmpty(self.Puuid)) self = _pre.Allies.FirstOrDefault(); // fallback
+        string current = self.CharacterId is not null ? CharacterTable.Name(self.CharacterId) : "";
+
+        if (self.Locked) return; // already locked, done
+
+        if (!current.Equals(_selected, StringComparison.OrdinalIgnoreCase))
+        {
+            // Menu may still be loading — the hover won't stick until it's interactive.
+            _hoverConfirmedAt = null;
+            await RunAsync(() => Client.SelectAgentAsync(_selected));
         }
         else
         {
-            // Buffer: the poll fires it the moment character select loads.
-            _sentForMatch = null;
+            // Game confirms our agent is hovered → the menu is loaded.
+            _hoverConfirmedAt ??= DateTime.UtcNow;
+            if ((DateTime.UtcNow - _hoverConfirmedAt.Value).TotalMilliseconds >= SettleMs)
+                await RunAsync(() => Client.LockAgentAsync(_selected));
         }
     }
 
-    private async Task SelectAndLockAsync(string agent)
+    private async Task RunAsync(Func<Task> op)
     {
-        try
-        {
-            await Client.SelectAgentAsync(agent);
-            await Task.Delay(LockDelayMs);
-            await Client.LockAgentAsync(agent);
-            await InvokeAsync(() => { _error = null; StateHasChanged(); });
-        }
-        catch (Exception ex)
-        {
-            await InvokeAsync(() => { _error = ex.Message; StateHasChanged(); });
-        }
+        _busy = true;
+        try { await op(); await InvokeAsync(() => { _error = null; StateHasChanged(); }); }
+        catch (Exception ex) { await InvokeAsync(() => { _error = ex.Message; StateHasChanged(); }); }
+        finally { _busy = false; }
+    }
+
+    private async Task ScanNow() => await Poll();
+
+    private Task PreSelect(string agent)
+    {
+        _selected = agent;
+        _hoverConfirmedAt = null;
+        _error = null;
+        // The poll drives hover + confirmed-lock uniformly (also when buffered before the match).
+        return Task.CompletedTask;
     }
 
     private (int matches, int wins, int losses, double winRate, double kd) GetStats(string agent)
