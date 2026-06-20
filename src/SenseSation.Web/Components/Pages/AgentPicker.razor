@@ -34,7 +34,9 @@
 {
     <div class="banner info">
         <img src="/agents/@(_selected).png" alt="@_selected" style="width:24px;height:24px;border-radius:4px" />
-        <span>Pre-selected: <strong>@_selected</strong>@(_pre is not null ? " on " + _pre.Map : "") — lock in-game</span>
+        <span>Pre-selected: <strong>@_selected</strong>
+            @(_pre is { IsAgentSelect: true } ? " on " + _pre.Map + " — locking in" : " — will select & lock when agent select loads")
+        </span>
     </div>
 }
 
@@ -104,11 +106,12 @@
     private string? _selected;
     private string? _error;
     private bool _scanning;
+    private string? _sentForMatch;
     private Timer? _timer;
 
     protected override void OnInitialized()
     {
-        _timer = new Timer(async _ => await Poll(), null, TimeSpan.Zero, TimeSpan.FromSeconds(4));
+        _timer = new Timer(async _ => await Poll(), null, TimeSpan.Zero, TimeSpan.FromSeconds(3));
     }
 
     private async Task Poll()
@@ -120,6 +123,31 @@
             if (!Client.IsConnected) await Client.ConnectAsync();
             if (Client.IsConnected) _pre = await Client.GetPreGameAsync();
             if (Client.LastError is { } e && _pre is null) _error = e; else _error = null;
+
+            // Fire the buffered pre-select the instant character select loads.
+            if (_selected is not null && _pre is { IsAgentSelect: true }
+                && _pre.MatchId != _sentForMatch)
+            {
+                try
+                {
+                    await Client.SelectAgentAsync(_selected);
+                    _sentForMatch = _pre.MatchId;
+                    _error = null;
+                    // Lock after a short delay so the select registers first.
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(1800);
+                        try { await Client.LockAgentAsync(_selected); }
+                        catch { /* best-effort — user can always lock manually */ }
+                    });
+                }
+                catch (Exception ex) { _error = ex.Message; }
+            }
+            // Reset sent tracker when the match changes.
+            else if (_pre is not null && _pre.MatchId != _sentForMatch && !_pre.IsAgentSelect)
+            {
+                _sentForMatch = null;
+            }
         }
         catch { }
         finally { _scanning = false; await InvokeAsync(StateHasChanged); }
@@ -130,9 +158,14 @@
     private async Task PreSelect(string agent)
     {
         _selected = agent;
+        _sentForMatch = null;
         _error = null;
-        try { await Client.SelectAgentAsync(agent); }
-        catch (Exception ex) { _error = ex.Message; }
+        // Fire now if we're already in character select.
+        if (_pre is { IsAgentSelect: true })
+        {
+            try { await Client.SelectAgentAsync(agent); _sentForMatch = _pre.MatchId; }
+            catch (Exception ex) { _error = ex.Message; }
+        }
     }
 
     private (int matches, int wins, int losses, double winRate, double kd) GetStats(string agent)
