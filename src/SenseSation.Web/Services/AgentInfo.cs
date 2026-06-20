@@ -32,6 +32,7 @@ public static class AgentInfo
         new("Sova", "Initiator", "#305ec4", "#0a1640"),
         new("Tejo", "Initiator", "#c4a030", "#362a08"),
         new("Viper", "Controller", "#5a9654", "#142e12"),
+        new("Veto", "Duelist", "#c85050", "#381010"),
         new("Vyse", "Sentinel", "#8860b4", "#281438"),
         new("Waylay", "Duelist", "#60b088", "#143424"),
         new("Yoru", "Duelist", "#3476c7", "#082030"),
