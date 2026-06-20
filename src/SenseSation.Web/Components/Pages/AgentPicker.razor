@@ -111,7 +111,7 @@
 
     protected override void OnInitialized()
     {
-        _timer = new Timer(async _ => await Poll(), null, TimeSpan.Zero, TimeSpan.FromSeconds(3));
+        _timer = new Timer(async _ => await Poll(), null, TimeSpan.Zero, TimeSpan.FromSeconds(1500));
     }
 
     private async Task Poll()
@@ -121,29 +121,30 @@
         try
         {
             if (!Client.IsConnected) await Client.ConnectAsync();
-            if (Client.IsConnected) _pre = await Client.GetPreGameAsync();
+            _pre = await Client.GetPreGameAsync();
             if (Client.LastError is { } e && _pre is null) _error = e; else _error = null;
 
-            // Fire the buffered pre-select the instant character select loads.
+            // Fire the buffered pre-select + lock the instant character select is detected.
             if (_selected is not null && _pre is { IsAgentSelect: true }
                 && _pre.MatchId != _sentForMatch)
             {
-                try
+                _sentForMatch = _pre.MatchId;
+                _ = Task.Run(async () =>
                 {
-                    await Client.SelectAgentAsync(_selected);
-                    _sentForMatch = _pre.MatchId;
-                    _error = null;
-                    // Lock after a short delay so the select registers first.
-                    _ = Task.Run(async () =>
+                    try
                     {
-                        await Task.Delay(1800);
-                        try { await Client.LockAgentAsync(_selected); }
-                        catch { /* best-effort — user can always lock manually */ }
-                    });
-                }
-                catch (Exception ex) { _error = ex.Message; }
+                        await Client.SelectAgentAsync(_selected);
+                        await Task.Delay(200);
+                        await Client.LockAgentAsync(_selected);
+                        _error = null;
+                    }
+                    catch (Exception ex)
+                    {
+                        // Surface error but don't block the poll.
+                        await InvokeAsync(() => { _error = ex.Message; StateHasChanged(); });
+                    }
+                });
             }
-            // Reset sent tracker when the match changes.
             else if (_pre is not null && _pre.MatchId != _sentForMatch && !_pre.IsAgentSelect)
             {
                 _sentForMatch = null;
@@ -160,12 +161,9 @@
         _selected = agent;
         _sentForMatch = null;
         _error = null;
-        // Fire now if we're already in character select.
-        if (_pre is { IsAgentSelect: true })
-        {
-            try { await Client.SelectAgentAsync(agent); _sentForMatch = _pre.MatchId; }
-            catch (Exception ex) { _error = ex.Message; }
-        }
+        // Always try the call — don't gate on detection state.
+        try { await Client.SelectAgentAsync(agent); }
+        catch (Exception ex) { _error = "Pre-game not ready — your pick will select & lock when it loads."; }
     }
 
     private (int matches, int wins, int losses, double winRate, double kd) GetStats(string agent)
