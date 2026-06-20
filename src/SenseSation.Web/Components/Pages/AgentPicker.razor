@@ -109,10 +109,11 @@
     private bool _busy;             // a select/lock call is in flight
     private string? _seenMatchId;  // match we've started the select sequence for
     private DateTime? _selectSeenAt; // when we first saw character_select for this match
+    private bool _disposed;
     private Timer? _timer;
 
     private const int PreHoverMs = 1000; // wait after detecting agent select so the menu renders
-    private const int SettleMs = 250;    // brief hover after the menu confirms it, then lock
+    private const int SettleMs = 150;    // tiny gap between hover and lock
 
     protected override void OnInitialized()
     {
@@ -134,7 +135,12 @@
             await DriveSelectionAsync();
         }
         catch { }
-        finally { _scanning = false; await InvokeAsync(StateHasChanged); }
+        finally
+        {
+            _scanning = false;
+            try { if (!_disposed) await InvokeAsync(StateHasChanged); }
+            catch (ObjectDisposedException) { /* component torn down mid-poll */ }
+        }
     }
 
     /// <summary>
@@ -168,24 +174,17 @@
 
         var self = _pre.Allies.FirstOrDefault(a => a.Puuid == Client.SelfPuuid);
         if (string.IsNullOrEmpty(self.Puuid)) return; // can't identify self yet — don't guess
-        string current = self.CharacterId is not null ? CharacterTable.Name(self.CharacterId) : "";
+        if (self.Locked) return;                      // already locked (state string, GUID-independent)
 
-        if (self.Locked) return; // already locked, done
-
-        if (!current.Equals(_selected, StringComparison.OrdinalIgnoreCase))
+        // Menu is loaded (past the grace) → hover then lock with a tiny gap. Retries each poll
+        // until the game reports us locked. Uses the lock STATE, not the agent/GUID table, so it
+        // works for every agent regardless of icon-table accuracy.
+        await RunAsync(async () =>
         {
-            // Hover. Won't stick until the menu is interactive — retries each poll until it does.
-            await RunAsync(() => Client.SelectAgentAsync(_selected));
-        }
-        else
-        {
-            // Game confirms our agent is hovered (menu loaded) → brief pause, then lock.
-            await RunAsync(async () =>
-            {
-                await Task.Delay(SettleMs);
-                await Client.LockAgentAsync(_selected);
-            });
-        }
+            await Client.SelectAgentAsync(_selected);
+            await Task.Delay(SettleMs);
+            await Client.LockAgentAsync(_selected);
+        });
     }
 
     private async Task RunAsync(Func<Task> op)
@@ -218,5 +217,5 @@
         return (n, w, l, wr, kd);
     }
 
-    public void Dispose() => _timer?.Dispose();
+    public void Dispose() { _disposed = true; _timer?.Dispose(); }
 }
