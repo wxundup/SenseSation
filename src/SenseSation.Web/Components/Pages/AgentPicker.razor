@@ -109,7 +109,7 @@
     private string? _sentForMatch;
     private Timer? _timer;
 
-    private const int LockDelayMs = 150; // hover, then lock shortly after
+    private const int LockDelayMs = 1500; // hover, wait, then lock so the hover is visible
 
     protected override void OnInitialized()
     {
