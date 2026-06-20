@@ -57,6 +57,21 @@ public interface ILiveClient
 
     /// <summary>A lobby player's rank + recent competitive matches (public account data), or null.</summary>
     Task<PlayerCareer?> GetCareerAsync(string puuid, CancellationToken ct = default);
+
+    /// <summary>Current pre-game agent-select lobby, or null if not in character select.</summary>
+    Task<PreGameLobby?> GetPreGameAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Pre-selects an agent (shows intent, does NOT lock). Equivalent to hovering an agent
+    /// icon in-game. Safe and non-automated — only called on explicit user click.
+    /// </summary>
+    Task SelectAgentAsync(string agent, CancellationToken ct = default);
+
+    /// <summary>
+    /// Locks in the currently selected agent. Equivalent to clicking "Lock In" in the game.
+    /// Only called on explicit user click — never automated.
+    /// </summary>
+    Task LockAgentAsync(string agent, CancellationToken ct = default);
 }
 
 /// <summary>Local persistence for match history, RR snapshots, and cached scoreboards.</summary>

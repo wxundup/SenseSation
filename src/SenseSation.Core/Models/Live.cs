@@ -38,6 +38,20 @@ public sealed record PlayerCareer
     public double AvgKd => Recent.Count == 0 ? 0 : Math.Round(Recent.Average(m => m.You.Kd), 2);
 }
 
+/// <summary>Pre-game agent-select state — who's on your team, who locked, map/mode.</summary>
+public sealed record PreGameLobby
+{
+    public required string MatchId { get; init; }
+    public string Map { get; init; } = "";
+    public string Mode { get; init; } = "";
+    public string Phase { get; init; } = ""; // "character_select", "provisioned", etc.
+
+    /// <summary>Agents already locked by your teammates + self (Subject, CharacterId, locked?).</summary>
+    public IReadOnlyList<(string Puuid, string? CharacterId, bool Locked)> Allies { get; init; } = [];
+
+    public bool IsAgentSelect => Phase.Equals("character_select", StringComparison.OrdinalIgnoreCase);
+}
+
 /// <summary>Snapshot of whether the local Riot client looks reachable, for diagnostics.</summary>
 public sealed record LiveEnvironment
 {

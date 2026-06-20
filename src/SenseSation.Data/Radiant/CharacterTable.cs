@@ -1,7 +1,7 @@
 namespace SenseSation.Data.Radiant;
 
 /// <summary>Maps Valorant agent (character) content UUIDs to display names.</summary>
-internal static class CharacterTable
+public static class CharacterTable
 {
     private static readonly Dictionary<string, string> Agents = new(StringComparer.OrdinalIgnoreCase)
     {

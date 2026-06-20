@@ -160,6 +160,62 @@ public sealed class RadiantConnectClient(RiotSession session) : ILiveClient
         }
     }
 
+    public async Task<PreGameLobby?> GetPreGameAsync(CancellationToken ct = default)
+    {
+        if (!await _session.EnsureConnectedAsync(ct)) return null;
+        try
+        {
+            var match = await _session.ExecuteAsync(
+                i => i.Endpoints.PreGameEndpoints.FetchPreGameMatchAsync(), ct);
+            if (match is null) return null;
+
+            var allies = new List<(string Puuid, string? CharacterId, bool Locked)>();
+            if (match.AllyTeam?.Players is { } players)
+                foreach (var p in players)
+                {
+                    string sub = p.Subject ?? "";
+                    if (string.IsNullOrEmpty(sub)) continue;
+                    string? cid = string.IsNullOrEmpty(p.CharacterId) ? null : p.CharacterId;
+                    allies.Add((sub, cid, "locked".Equals(p.CharacterSelectionState, StringComparison.OrdinalIgnoreCase)));
+                }
+
+            return new PreGameLobby
+            {
+                MatchId = match.Id ?? "",
+                Map = match.MapId ?? "",
+                Mode = match.QueueId ?? "",
+                Phase = match.PregameState ?? "",
+                Allies = allies,
+            };
+        }
+        catch (Exception ex)
+        {
+            _session.SetError($"Pre-game read failed: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task SelectAgentAsync(string agent, CancellationToken ct = default)
+    {
+        if (!await _session.EnsureConnectedAsync(ct)) return;
+        if (TryParseAgent(agent, out var a))
+            await _session.ExecuteAsync(i => i.Endpoints.PreGameEndpoints.SelectCharacterAsync(a), ct);
+    }
+
+    public async Task LockAgentAsync(string agent, CancellationToken ct = default)
+    {
+        if (!await _session.EnsureConnectedAsync(ct)) return;
+        if (TryParseAgent(agent, out var a))
+            await _session.ExecuteAsync(i => i.Endpoints.PreGameEndpoints.LockCharacterAsync(a), ct);
+    }
+
+    private static bool TryParseAgent(string name, out RadiantConnect.Methods.ValorantTables.Agent agent)
+    {
+        // Normalize display names (KAY/O, ISO) to enum names (KAY_O, ISO)
+        string key = name.Replace("/", "_").Replace("-", "_").Replace(" ", "_");
+        return Enum.TryParse(key, true, out agent);
+    }
+
     private async Task<int> FetchTierAsync(string puuid, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(puuid)) return 0;

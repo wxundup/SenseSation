@@ -1,0 +1,164 @@
+@page "/agents"
+@inject ILiveClient Client
+@inject AppData App
+@implements IDisposable
+
+<PageTitle>SenseSation · Agent Picker</PageTitle>
+
+<div class="page-head">
+    <div>
+        <h1>Agent Picker</h1>
+        <div class="sub">
+            @if (_pre is { IsAgentSelect: true })
+            {
+                <span>Character select · @_pre.Map</span>
+            }
+            else if (_pre is not null)
+            {
+                <span>Pre-game · @_pre.Phase · @_pre.Map</span>
+            }
+            else if (_scanning)
+            {
+                <span>Waiting for agent select…</span>
+            }
+            else
+            {
+                <span>No pre-game lobby — join a match first</span>
+            }
+        </div>
+    </div>
+    <button class="btn primary" @onclick="ScanNow" disabled="@_scanning">↻</button>
+</div>
+
+<div class="banner info" style="font-size:.86rem">
+    <Icon Name="shield" Size="16" />
+    <span>
+        <strong>Safe.</strong> Click = pre-select (same as hovering in-game, doesn't lock).
+        Hit <strong>Lock In</strong> to confirm. Never auto-locks — always your choice.
+    </span>
+</div>
+
+@if (_selected is not null)
+{
+    <div class="banner info" style="justify-content:space-between">
+        <span>Pre-selected: <strong>@_selected</strong>@(_pre is not null ? " on " + _pre.Map : "")</span>
+        <button class="btn primary" style="background:var(--teal)" @onclick="Lock" disabled="@_locking">
+            @(_locking ? "Locking…" : "🔒 Lock In")
+        </button>
+    </div>
+}
+
+@if (_error is not null)
+{
+    <div class="banner warn">@_error</div>
+}
+
+@if (_pre?.Allies is { Count: > 0 })
+{
+    <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:18px;font-size:.85rem">
+        <span class="muted" style="text-transform:uppercase;letter-spacing:1px;font-weight:700">Lobby:</span>
+        @foreach (var a in _pre.Allies)
+        {
+            var ag = a.CharacterId is not null ? CharacterTable.Name(a.CharacterId) : "";
+            <span class="chip @(a.Locked ? "major" : "minor")" title="@a.Puuid">@(string.IsNullOrEmpty(ag) ? "—" : ag)@(a.Locked ? " 🔒" : "")</span>
+        }
+    </div>
+}
+
+@{
+    var grouped = (from ag in AgentInfo.All
+                   let st = GetStats(ag.Name)
+                   orderby st.matches descending, st.winRate descending
+                   select (info: ag, stats: st)).ToList();
+}
+<div class="grid cols-3" style="gap:12px">
+    @foreach (var (info, st) in grouped)
+    {
+        bool lockedByTeammate = _pre?.Allies.Any(a => a.Locked && CharacterTable.Name(a.CharacterId ?? "") == info.Name) ?? false;
+        <div class="acard @(_selected == info.Name ? "sel" : "") @(lockedByTeammate ? "taken" : "")"
+             style="@AgentInfo.BodyStyle(info.Name, lockedByTeammate)"
+             @onclick="@(() => PreSelect(info.Name))">
+            <div class="role" style="color:@info.Color">@info.Role</div>
+            <div class="aname">@info.Name</div>
+            @if (st.matches > 0)
+            {
+                <div class="astats">
+                    <span class="chip @(st.winRate >= 50 ? "" : "major")">@st.winRate% @st.wins-@st.losses</span>
+                    <span class="chip">@st.kd K/D</span>
+                </div>
+                <div class="atar" style="margin-top:6px">
+                    <div class="track" style="height:6px">
+                        <div class="fill sev-ok" style="width:@(st.matches > 0 ? (int)(st.winRate) : 0)%"></div>
+                    </div>
+                </div>
+                <div class="muted" style="font-size:.68rem;margin-top:4px">@st.matches game@(st.matches == 1 ? "" : "s")</div>
+            }
+            else
+            {
+                <div class="muted" style="font-size:.76rem">no data</div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private PreGameLobby? _pre;
+    private string? _selected;
+    private string? _error;
+    private bool _scanning;
+    private bool _locking;
+    private Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        _timer = new Timer(async _ => await Poll(), null, TimeSpan.Zero, TimeSpan.FromSeconds(4));
+    }
+
+    private async Task Poll()
+    {
+        if (_scanning) return;
+        _scanning = true;
+        try
+        {
+            if (!Client.IsConnected) await Client.ConnectAsync();
+            if (Client.IsConnected) _pre = await Client.GetPreGameAsync();
+            if (Client.LastError is { } e && _pre is null) _error = e; else _error = null;
+        }
+        catch { }
+        finally { _scanning = false; await InvokeAsync(StateHasChanged); }
+    }
+
+    private async Task ScanNow() => await Poll();
+
+    private async Task PreSelect(string agent)
+    {
+        _selected = agent;
+        _error = null;
+        try { await Client.SelectAgentAsync(agent); }
+        catch (Exception ex) { _error = ex.Message; }
+    }
+
+    private async Task Lock()
+    {
+        if (_selected is null) return;
+        _locking = true;
+        try { await Client.LockAgentAsync(_selected); _error = null; }
+        catch (Exception ex) { _error = ex.Message; }
+        finally { _locking = false; }
+    }
+
+    // Compute per-agent stats from loaded match history.
+    private (int matches, int wins, int losses, double winRate, double kd) GetStats(string agent)
+    {
+        var list = App.Matches.Where(m => m.Agent.Equals(agent, StringComparison.OrdinalIgnoreCase)).ToList();
+        int n = list.Count;
+        if (n == 0) return (0, 0, 0, 0, 0);
+        int w = list.Count(m => m.Result == MatchResult.Win);
+        int l = list.Count(m => m.Result == MatchResult.Loss);
+        double wr = Math.Round(100.0 * w / n, 0);
+        double kd = Math.Round(list.Average(m => m.You.Kd), 2);
+        return (n, w, l, wr, kd);
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

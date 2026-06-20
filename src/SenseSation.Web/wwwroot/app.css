@@ -209,3 +209,12 @@ label.fld { display: flex; flex-direction: column; gap: 6px; font-size: .73rem; 
 #blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: .75rem; top: .5rem; }
 .blazor-error-boundary { background: var(--accent); padding: 1rem; color: #fff; border-radius: 8px; }
 .blazor-error-boundary::after { content: "An error has occurred."; }
+
+/* ----- Agent picker cards ------------------------------------------------ */
+.acard { border-radius: var(--radius-sm); padding: 13px 14px; cursor: pointer; transition: .15s; min-height: 90px; display: flex; flex-direction: column; justify-content: space-between; }
+.acard:hover { transform: translateY(-2px); }
+.acard.sel { border-color: var(--teal) !important; box-shadow: 0 0 0 2px rgba(30,227,198,.35), 0 8px 20px -6px rgba(30,227,198,.25); }
+.acard.taken { opacity: .5; pointer-events: none; }
+.acard .role { font-size: .62rem; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 800; }
+.acard .aname { font-family: var(--display); font-size: 1.05rem; font-weight: 700; letter-spacing: .5px; margin: 2px 0 4px; }
+.acard .astats { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
