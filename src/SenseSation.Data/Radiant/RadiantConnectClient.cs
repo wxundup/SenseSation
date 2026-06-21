@@ -91,7 +91,7 @@ public sealed class RadiantConnectClient(RiotSession session) : ILiveClient
             return new LiveLobby
             {
                 MatchId = ReflectionHelpers.GetString(match, "MatchId") ?? "",
-                Map = ReflectionHelpers.GetString(match, "MapId") ?? "",
+                Map = MapTable.Display(ReflectionHelpers.GetString(match, "MapId")),
                 Mode = ReflectionHelpers.GetString(match, "ModeId") ?? "",
                 Phase = "INGAME",
                 Allies = allies,
@@ -188,7 +188,7 @@ public sealed class RadiantConnectClient(RiotSession session) : ILiveClient
             return new PreGameLobby
             {
                 MatchId = match.Id ?? "",
-                Map = match.MapId ?? "",
+                Map = MapTable.Display(match.MapId),
                 Mode = match.QueueId ?? "",
                 Phase = match.PregameState ?? "",
                 Allies = allies,

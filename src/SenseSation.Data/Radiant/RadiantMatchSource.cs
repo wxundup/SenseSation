@@ -300,12 +300,7 @@ public sealed class RadiantMatchSource(RiotSession session) : IMatchDataSource
         _ => 0
     };
 
-    private static string MapName(string? mapId)
-    {
-        if (string.IsNullOrEmpty(mapId)) return "";
-        var seg = mapId.TrimEnd('/').Split('/').Last();
-        return seg;
-    }
+    private static string MapName(string? mapId) => MapTable.Display(mapId);
 
     private static string ModeName(string? queueId) => string.IsNullOrEmpty(queueId)
         ? "" : char.ToUpper(queueId[0]) + queueId[1..];
