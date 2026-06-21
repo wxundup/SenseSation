@@ -115,10 +115,8 @@
     private string? _selected;
     private string? _error;
     private bool _scanning;
-    private bool _busy;             // a select/lock call is in flight
     private string? _seenMatchId;  // match we've started the select sequence for
     private DateTime? _selectSeenAt; // when we first saw character_select for this match
-    private bool _disposed;
     private Timer? _timer;
 
     // The API flips to character_select_active during the map load screen, before the menu
@@ -145,8 +143,9 @@
             else if (!err.Contains("read failed", StringComparison.OrdinalIgnoreCase)) _pre = null; // genuinely not in pregame
             // else: transient read glitch — keep the last _pre so we don't lose the lock sequence.
 
-            // Only surface an error when we have nothing to show.
-            _error = _pre is null ? RealError(Client.LastError) : null;
+            // Surface a real error only when we have nothing to show (hide the lobby idle message).
+            _error = _pre is null && err.Length > 0 && !err.Contains("no in-game match", StringComparison.OrdinalIgnoreCase)
+                ? err : null;
 
             await DriveSelectionAsync();
         }
@@ -154,7 +153,7 @@
         finally
         {
             _scanning = false;
-            try { if (!_disposed) await InvokeAsync(StateHasChanged); }
+            try { await InvokeAsync(StateHasChanged); }
             catch (ObjectDisposedException) { /* component torn down mid-poll */ }
         }
     }
@@ -165,8 +164,6 @@
     /// </summary>
     private async Task DriveSelectionAsync()
     {
-        if (_busy) return;
-
         // Not in agent select — reset so we re-arm for the next match.
         if (_pre is not { IsAgentSelect: true })
         {
@@ -213,25 +210,14 @@
 
     private async Task RunAsync(Func<Task> op)
     {
-        _busy = true;
         try { await op(); await InvokeAsync(() => { _error = null; StateHasChanged(); }); }
         catch (Exception ex) { await InvokeAsync(() => { _error = ex.Message; StateHasChanged(); }); }
-        finally { _busy = false; }
     }
 
     // True once the game reports our own player locked in.
     private bool SelfLocked => _pre?.Allies.FirstOrDefault(a => a.Puuid == Client.SelfPuuid).Locked ?? false;
 
     private async Task ScanNow() => await Poll();
-
-    private static string? RealError(string? e)
-    {
-        if (string.IsNullOrWhiteSpace(e)) return null;
-        var l = e.ToLowerInvariant();
-        return (l.Contains("failed") || l.Contains("not running") || l.Contains("lockfile")
-                || l.Contains("administrator") || l.Contains("could not") || l.Contains("session"))
-            ? e : null;
-    }
 
     private Task PreSelect(string agent)
     {
@@ -253,5 +239,5 @@
         return (n, w, l, wr, kd);
     }
 
-    public void Dispose() { _disposed = true; _timer?.Dispose(); }
+    public void Dispose() => _timer?.Dispose();
 }
