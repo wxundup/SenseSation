@@ -1,0 +1,364 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:SenseSation.Desktop.ViewModels"
+        xmlns:core="clr-namespace:SenseSation.Core.Models;assembly=SenseSation.Core"
+        x:Class="SenseSation.Desktop.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="SenseSation" Width="1280" Height="820"
+        MinWidth="980" MinHeight="640"
+        Background="{StaticResource BgBrush}">
+
+    <Window.DataTemplates>
+
+        <!-- Match row (auto-applied to MatchSummary items) -->
+        <DataTemplate DataType="core:MatchSummary">
+            <Border Classes="row">
+                <Grid ColumnDefinitions="80,*,*,70,110,55,60">
+                    <TextBlock Text="{Binding ResultLabel}" FontWeight="Bold"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Agent}"/>
+                    <TextBlock Grid.Column="2" Text="{Binding Map}"/>
+                    <TextBlock Grid.Column="3" Text="{Binding ScoreLabel}" Classes="muted"/>
+                    <TextBlock Grid.Column="4" Text="{Binding KdaLabel}"/>
+                    <TextBlock Grid.Column="5" Text="{Binding You.HeadshotPct, StringFormat='{}{0}%'}" Classes="muted"/>
+                    <TextBlock Grid.Column="6" Text="{Binding You.DamagePerRound}" Classes="muted" TextAlignment="Right"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+
+        <!-- ===== Dashboard ===== -->
+        <DataTemplate DataType="vm:DashboardVm">
+            <ScrollViewer Padding="30">
+                <StackPanel Spacing="16">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel>
+                            <TextBlock Classes="h1" Text="DASHBOARD"/>
+                            <TextBlock Classes="muted" Text="{Binding Headline}" TextWrapping="Wrap" MaxWidth="760"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Classes="primary" Content="↻ Refresh" VerticalAlignment="Top"
+                                Command="{Binding RefreshCommand}"/>
+                    </Grid>
+
+                    <!-- hero -->
+                    <Border Classes="card">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <StackPanel Spacing="6" HorizontalAlignment="Center">
+                                <Border Width="120" Height="120" CornerRadius="60" BorderThickness="8"
+                                        BorderBrush="{StaticResource AccentBrush}">
+                                    <TextBlock Text="{Binding Rank}" FontWeight="Bold" FontSize="15"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               TextAlignment="Center" TextWrapping="Wrap" MaxWidth="100"/>
+                                </Border>
+                                <TextBlock Text="Current Rank" Classes="muted" HorizontalAlignment="Center" FontSize="11"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="26,0" VerticalAlignment="Center" Spacing="6">
+                                <TextBlock Text="GAMESENSE REPORT" Classes="muted" FontSize="11" LetterSpacing="2"/>
+                                <TextBlock Text="{Binding Headline}" TextWrapping="Wrap" FontSize="15" FontWeight="SemiBold"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Spacing="6" HorizontalAlignment="Center">
+                                <Border Width="120" Height="120" CornerRadius="60" BorderThickness="8"
+                                        BorderBrush="{StaticResource Accent2Brush}">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding WinRate, StringFormat='{}{0:0}%'}" FontWeight="Bold" FontSize="24" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="{Binding WinLoss}" Classes="muted" FontSize="11" HorizontalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="Win Rate" Classes="muted" HorizontalAlignment="Center" FontSize="11"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- tiles -->
+                    <UniformGrid Columns="4" Margin="0">
+                        <Border Classes="card" Margin="0,0,8,0">
+                            <StackPanel><TextBlock Classes="h3" Text="K/D RATIO"/><TextBlock Text="{Binding Kd}" FontSize="30" FontWeight="Bold"/><TextBlock Text="{Binding Adr, StringFormat='{}{0} ADR'}" Classes="muted"/></StackPanel>
+                        </Border>
+                        <Border Classes="card" Margin="8,0">
+                            <StackPanel><TextBlock Classes="h3" Text="HEADSHOT %"/><TextBlock Text="{Binding Hs}" FontSize="30" FontWeight="Bold"/><TextBlock Text="crosshair placement" Classes="muted"/></StackPanel>
+                        </Border>
+                        <Border Classes="card" Margin="8,0">
+                            <StackPanel><TextBlock Classes="h3" Text="OPENING KILLS"/><TextBlock Text="{Binding Entries}" FontSize="30" FontWeight="Bold"/><TextBlock Text="per match" Classes="muted"/></StackPanel>
+                        </Border>
+                        <Border Classes="card" Margin="8,0,0,0">
+                            <StackPanel><TextBlock Classes="h3" Text="KAST"/><TextBlock Text="{Binding Kast}" FontSize="30" FontWeight="Bold"/><TextBlock Text="round impact" Classes="muted"/></StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <Border Classes="card">
+                        <StackPanel>
+                            <TextBlock Classes="h3" Text="RECENT MATCHES"/>
+                            <ItemsControl ItemsSource="{Binding Recent}" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </DataTemplate>
+
+        <!-- ===== Matches ===== -->
+        <DataTemplate DataType="vm:MatchesVm">
+            <ScrollViewer Padding="30">
+                <StackPanel Spacing="16">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="h1" Text="MATCHES"/>
+                        <Button Grid.Column="1" Classes="primary" Content="↻ Refresh" Command="{Binding RefreshCommand}"/>
+                    </Grid>
+                    <Border Classes="card">
+                        <ItemsControl ItemsSource="{Binding Items}"/>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </DataTemplate>
+
+        <!-- ===== Trainer ===== -->
+        <DataTemplate DataType="vm:TrainerVm">
+            <ScrollViewer Padding="30">
+                <StackPanel Spacing="16">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="h1" Text="SMART TRAINER"/>
+                        <Button Grid.Column="1" Classes="primary" Content="↻ Refresh" Command="{Binding RefreshCommand}"/>
+                    </Grid>
+                    <Border Classes="card" Background="#1A1F3A">
+                        <TextBlock Text="{Binding Headline}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                    </Border>
+                    <Grid ColumnDefinitions="*,*" >
+                        <Border Classes="card" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Classes="h3" Text="PERFORMANCE VS BENCHMARKS"/>
+                                <ItemsControl ItemsSource="{Binding Bars}" Margin="0,10,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:BenchRow">
+                                            <StackPanel Margin="0,0,0,14">
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Vals}" Classes="muted" FontSize="12"/>
+                                                </Grid>
+                                                <ProgressBar Minimum="0" Maximum="100" Value="{Binding FillPct}"
+                                                             Height="10" Margin="0,5,0,0" CornerRadius="5"
+                                                             Background="#0A0C18" Foreground="{Binding Brush}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Classes="card" Margin="8,0,0,0">
+                            <StackPanel>
+                                <TextBlock Classes="h3" Text="WHAT'S COSTING YOU GAMES"/>
+                                <ItemsControl ItemsSource="{Binding Weaknesses}" Margin="0,10,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,0,0,12">
+                                                <TextBlock Text="{Binding Benchmark.Label}" FontWeight="Bold"/>
+                                                <TextBlock Text="{Binding Critique}" Classes="muted" TextWrapping="Wrap" FontSize="13"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Classes="h3" Text="PRACTICE PLAN" Margin="0,8,0,0"/>
+                                <ItemsControl ItemsSource="{Binding Plan}" Margin="0,8,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="0,0,0,10">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding How}" Classes="muted" TextWrapping="Wrap" FontSize="13"/>
+                                                <TextBlock Text="{Binding Where}" Foreground="{StaticResource Accent2Brush}" FontSize="12"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </ScrollViewer>
+        </DataTemplate>
+
+        <!-- ===== Rank ===== -->
+        <DataTemplate DataType="vm:RankVm">
+            <ScrollViewer Padding="30">
+                <StackPanel Spacing="16">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Classes="h1" Text="RANK TRACKER"/>
+                        <Button Grid.Column="1" Classes="primary" Content="↻ Refresh" Command="{Binding RefreshCommand}"/>
+                    </Grid>
+                    <UniformGrid Columns="2">
+                        <Border Classes="card" Margin="0,0,8,0"><StackPanel><TextBlock Classes="h3" Text="CURRENT RANK"/><TextBlock Text="{Binding Rank}" FontSize="26" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Classes="card" Margin="8,0,0,0"><StackPanel><TextBlock Classes="h3" Text="RECENT NET RR"/><TextBlock Text="{Binding NetRr}" FontSize="26" FontWeight="Bold"/></StackPanel></Border>
+                    </UniformGrid>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <TextBlock Classes="h3" Text="GAME BY GAME"/>
+                            <ItemsControl ItemsSource="{Binding History}" Margin="0,8,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="core:RrSnapshot">
+                                        <Border Classes="row">
+                                            <Grid ColumnDefinitions="*,Auto,80">
+                                                <TextBlock Text="{Binding TierName}"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Rr, StringFormat='{}{0} RR'}" Classes="muted"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding RrDelta}" TextAlignment="Right" FontWeight="Bold"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </DataTemplate>
+
+        <!-- ===== Live ===== -->
+        <DataTemplate DataType="vm:LiveVm">
+            <ScrollViewer Padding="30">
+                <StackPanel Spacing="16">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel><TextBlock Classes="h1" Text="LIVE LOBBY"/><TextBlock Text="{Binding Status}" Classes="muted"/></StackPanel>
+                        <Button Grid.Column="1" Classes="primary" Content="↻ Scan" Command="{Binding ScanCommand}" IsEnabled="{Binding !Busy}"/>
+                    </Grid>
+                    <UniformGrid Columns="2">
+                        <Border Classes="card" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Classes="h3" Text="YOUR TEAM"/>
+                                <ItemsControl ItemsSource="{Binding Allies}" Margin="0,8,0,0">
+                                    <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:LivePlayer">
+                                        <Border Classes="row"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="{Binding Rank}" Classes="muted"/></Grid></Border>
+                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Classes="card" Margin="8,0,0,0">
+                            <StackPanel>
+                                <TextBlock Classes="h3" Text="ENEMY TEAM"/>
+                                <ItemsControl ItemsSource="{Binding Enemies}" Margin="0,8,0,0">
+                                    <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:LivePlayer">
+                                        <Border Classes="row"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="{Binding Rank}" Classes="muted"/></Grid></Border>
+                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+                </StackPanel>
+            </ScrollViewer>
+        </DataTemplate>
+
+        <!-- ===== Agents ===== -->
+        <DataTemplate DataType="vm:AgentsVm">
+            <ScrollViewer Padding="30">
+                <StackPanel Spacing="16">
+                    <StackPanel><TextBlock Classes="h1" Text="AGENT PICKER"/><TextBlock Text="{Binding Status}" Classes="muted"/></StackPanel>
+                    <Border Classes="card" Background="#1A1F3A" IsVisible="{Binding SelectedName, Converter={x:Static ObjectConverters.IsNotNull}}">
+                        <TextBlock><Run Text="Pre-selected: "/><Run Text="{Binding SelectedName}" FontWeight="Bold"/><Run Text=" — auto-locks once agent select loads"/></TextBlock>
+                    </Border>
+                    <ItemsControl ItemsSource="{Binding Agents}">
+                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AgentCard">
+                                <Button Width="150" Height="92" Margin="6" Padding="0" Background="Transparent"
+                                        Command="{Binding $parent[ItemsControl].((vm:AgentsVm)DataContext).PickCommand}"
+                                        CommandParameter="{Binding}">
+                                    <Border CornerRadius="10" Padding="12" BorderThickness="2"
+                                            Background="{StaticResource PanelBrush}"
+                                            BorderBrush="{Binding Selected, Converter={x:Static vm:Conv.SelBorder}}">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Role}" FontSize="10" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding Stats}" Classes="muted" FontSize="11"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
+        </DataTemplate>
+
+        <!-- ===== Settings ===== -->
+        <DataTemplate DataType="vm:SettingsVm">
+            <ScrollViewer Padding="30">
+                <StackPanel Spacing="16" MaxWidth="620" HorizontalAlignment="Left">
+                    <TextBlock Classes="h1" Text="SETTINGS"/>
+                    <Border Classes="card">
+                        <StackPanel Spacing="8">
+                            <TextBlock Classes="h3" Text="HENRIKDEV API KEY"/>
+                            <TextBlock Classes="muted" TextWrapping="Wrap" Text="With a key: any account, game not needed. Without: reads your running Riot client."/>
+                            <TextBox Watermark="paste key" Text="{Binding ApiKey}" PasswordChar="•"/>
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Classes="primary" Content="Save key" Command="{Binding SaveKeyCommand}"/>
+                                <TextBlock Text="{Binding Status}" Classes="muted" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <StackPanel Spacing="8">
+                            <TextBlock Classes="h3" Text="TRACKED RIOT ACCOUNT"/>
+                            <Grid ColumnDefinitions="120,*,120" >
+                                <ComboBox ItemsSource="{Binding Regions}" SelectedItem="{Binding Region}" Margin="0,0,8,0"/>
+                                <TextBox Grid.Column="1" Watermark="Riot name" Text="{Binding Name}" Margin="0,0,8,0"/>
+                                <TextBox Grid.Column="2" Watermark="Tag" Text="{Binding Tag}"/>
+                            </Grid>
+                            <Button Classes="primary" Content="Save &amp; load" HorizontalAlignment="Left" Command="{Binding SaveAccountCommand}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </DataTemplate>
+    </Window.DataTemplates>
+
+    <Grid ColumnDefinitions="240,*">
+        <!-- Sidebar -->
+        <Border Background="{StaticResource Bg1}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0">
+            <DockPanel Margin="14,20">
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="6,0,0,24">
+                    <Border Width="38" Height="38" CornerRadius="10" Background="{StaticResource AccentBrush}">
+                        <TextBlock Text="S" FontWeight="Bold" FontSize="20" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="SenseSation" FontWeight="Bold" FontSize="17"/>
+                        <TextBlock Text="GAMESENSE OS" FontSize="9" Foreground="{StaticResource Accent2Brush}" LetterSpacing="3"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <Border DockPanel.Dock="Bottom" Classes="chip" Margin="0,16,0,0" HorizontalAlignment="Stretch">
+                    <TextBlock Text="{Binding Source}" Classes="muted" FontSize="12"/>
+                </Border>
+
+                <ItemsControl ItemsSource="{Binding Pages}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:PageVm">
+                            <Button Classes="nav" Classes.active="{Binding IsActive}" Margin="0,0,0,3"
+                                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).NavigateCommand}"
+                                    CommandParameter="{Binding}">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <TextBlock Text="{Binding Glyph}" FontSize="15" Width="20"/>
+                                    <TextBlock Text="{Binding Title}"/>
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </DockPanel>
+        </Border>
+
+        <!-- Main -->
+        <DockPanel Grid.Column="1">
+            <Border DockPanel.Dock="Top" Background="{StaticResource Bg1}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="30,14">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Account}" FontWeight="SemiBold" FontSize="15"/>
+                        <Border Classes="chip" IsVisible="{Binding RankText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock Text="{Binding RankText}" Foreground="{StaticResource GoldBrush}" FontWeight="SemiBold" FontSize="12"/>
+                        </Border>
+                    </StackPanel>
+                    <Border Grid.Column="1" Classes="chip">
+                        <TextBlock Text="{Binding Source}" Foreground="{StaticResource Accent2Brush}" FontSize="12" FontWeight="SemiBold"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <ContentControl Content="{Binding Current}"/>
+        </DockPanel>
+    </Grid>
+</Window>

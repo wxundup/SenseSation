@@ -37,8 +37,15 @@ Screen recording + VOD review. Uses ffmpeg and OpenCV.
 - `RoundReviewService` — per-round clip assembly
 - `CaptureOptions` — ffmpeg path, clip pre/post seconds, output dir
 
-### SenseSation.Web
-Blazor Server dashboard. InteractiveServer render mode.
+### SenseSation.Desktop  (the UI — replaced the old Blazor web app)
+Avalonia 11 native desktop app (net8, MVVM via CommunityToolkit). Revamped indigo/violet/aqua
+theme (not the old red/teal). `Services/Bootstrap.cs` is the manual composition root; `AppData`,
+`SettingsStore`, `MatchSourceRouter`, `AgentInfo` mirror the old web services. `ViewModels/ViewModels.cs`
+holds all page VMs; `MainWindow.axaml` is the shell + page DataTemplates. Pages: Dashboard, Matches,
+Trainer, Rank, Live, Agents, Settings. No VOD — that feature and `SenseSation.Capture` were removed.
+
+### SenseSation.Web  (DELETED — kept here only as historical note)
+Old Blazor Server dashboard. Replaced by SenseSation.Desktop.
 - `Program.cs` — DI wiring, standalone port (5080), `/media/` streaming endpoint with range support
 - `Services/` — `AppData` (per-circuit cache facade, falls back to SQLite on API failure), `MatchSourceRouter` (routes between HenrikDev/Radiant per-call), `SettingsStore` (persists account + API key to `%LOCALAPPDATA%\SenseSation\settings.json`), `AgentInfo` (agent name → icon mapping)
 - `Components/Pages/` — `Home` (dashboard), `Matches`, `MatchView`, `Trainer` (Smart Trainer), `RankPage` (RR chart), `Live` (live lobby with auto-poll + career viewer), `AgentPicker` (pre-game agent select), `Vod`, `Settings`

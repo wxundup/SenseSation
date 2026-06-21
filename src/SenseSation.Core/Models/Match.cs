@@ -65,6 +65,8 @@ public sealed record MatchSummary
     public double? EconDisciplinePct { get; init; }
 
     public string ScoreLabel => $"{RoundsWon}-{RoundsLost}";
+    public string KdaLabel => $"{You.Kills} / {You.Deaths} / {You.Assists}";
+    public string ResultLabel => Result.ToString().ToUpperInvariant();
 }
 
 /// <summary>One round's economy snapshot, used for econ-discipline analysis.</summary>
