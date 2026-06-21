@@ -22,6 +22,10 @@ public sealed record PlayerSummary
     public bool IsSelf { get; init; }
 
     public string DisplayName => string.IsNullOrEmpty(Tag) ? Name : $"{Name}#{Tag}";
+
+    /// <summary>Name when shown, else the agent they're playing (hidden/incognito players), else "Player".</summary>
+    public string NameOrAgent => !string.IsNullOrEmpty(Name) ? DisplayName
+        : !string.IsNullOrEmpty(Agent) ? Agent : "Player";
 }
 
 /// <summary>A single player's line on the scoreboard for one match.</summary>

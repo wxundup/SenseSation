@@ -64,7 +64,7 @@ else if (_detail is not null)
                     {
                         var l = Line(p);
                         <tr class="@(p.IsSelf ? "self-row" : "")">
-                            <td><strong>@(string.IsNullOrEmpty(p.Name) ? "Player" : p.DisplayName)</strong></td>
+                            <td><strong>@p.NameOrAgent</strong></td>
                             <td>@p.Agent</td>
                             <td><RankPill Rank="p.Rank" ShowRr="false" /></td>
                             <td class="mono">@l.Kills</td>

@@ -5,7 +5,7 @@
         {
             <tr class="@(p.IsSelf ? "self-row" : "") @(OnSelect.HasDelegate ? "row-link" : "")"
                 @onclick="@(() => OnSelect.HasDelegate ? OnSelect.InvokeAsync(p) : Task.CompletedTask)">
-                <td><strong>@(string.IsNullOrEmpty(p.Name) ? "Player" : p.DisplayName)</strong>@(p.IsSelf ? " (you)" : "")</td>
+                <td><strong>@p.NameOrAgent</strong>@(p.IsSelf ? " (you)" : "")</td>
                 <td><RankPill Rank="p.Rank" ShowRr="false" /></td>
                 <td class="faint" style="text-align:right">@(OnSelect.HasDelegate ? "career →" : "")</td>
             </tr>

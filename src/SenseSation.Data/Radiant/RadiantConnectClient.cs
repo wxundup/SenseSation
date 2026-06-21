@@ -73,7 +73,7 @@ public sealed class RadiantConnectClient(RiotSession session) : ILiveClient
                     Puuid = puuid,
                     Name = nt.name ?? "",
                     Tag = nt.tag ?? "",
-                    Agent = "",
+                    Agent = CharacterTable.Name(ReflectionHelpers.GetString(p, "CharacterId")),
                     Team = teamId.Equals("Red", StringComparison.OrdinalIgnoreCase) ? Team.Red : Team.Blue,
                     Rank = RankTable.Make(tier, 0),
                     IsSelf = puuid == self,
