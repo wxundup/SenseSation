@@ -20,6 +20,7 @@ public abstract partial class PageVm : ObservableObject
     public abstract string Title { get; }
     public abstract string Glyph { get; }
     [ObservableProperty] private bool _isActive;
+    [ObservableProperty] private string _iconAsset = ""; // asset path e.g. "agents/Reyna"; empty = use Glyph
     public virtual Task OnShownAsync() => Task.CompletedTask;
     protected static AppData Data => Bootstrap.Data;
     protected void OnUi(Action a) => Dispatcher.UIThread.Post(a);
@@ -195,6 +196,10 @@ public static class Conv
     public static readonly Avalonia.Data.Converters.IValueConverter RankIcon =
         new Avalonia.Data.Converters.FuncValueConverter<int, Avalonia.Media.Imaging.Bitmap?>(t => t > 2 ? Load($"ranks/{t}") : null);
 
+    // Loads any bundled asset by relative path (e.g. "agents/Reyna", "icons/brain").
+    public static readonly Avalonia.Data.Converters.IValueConverter AssetBitmap =
+        new Avalonia.Data.Converters.FuncValueConverter<string?, Avalonia.Media.Imaging.Bitmap?>(Load);
+
     private static Avalonia.Media.Imaging.Bitmap? Load(string rel)
     {
         if (string.IsNullOrEmpty(rel)) return null;
@@ -220,7 +225,7 @@ public partial class TrainerVm : PageVm
     public ObservableCollection<Weakness> Weaknesses { get; } = [];
     public ObservableCollection<Drill> Plan { get; } = [];
 
-    public TrainerVm() => Data.Changed += () => Dispatcher.UIThread.Post(Sync);
+    public TrainerVm() { IconAsset = "icons/brain"; Data.Changed += () => Dispatcher.UIThread.Post(Sync); }
     public override Task OnShownAsync() { Sync(); return Task.CompletedTask; }
 
     private void Sync()
@@ -263,7 +268,9 @@ public partial class RankVm : PageVm
     public override Task OnShownAsync() { Sync(); return Task.CompletedTask; }
     private void Sync()
     {
-        Rank = Data.Rank?.Name ?? "Unranked";
+        var rk = Data.Rank ?? SenseSation.Core.Models.Rank.Unranked;
+        Rank = rk.Name;
+        IconAsset = rk.Tier > 2 ? $"ranks/{rk.Tier}" : "";
         int net = Data.RrHistory.Sum(s => s.RrDelta);
         NetRr = $"{(net >= 0 ? "+" : "")}{net} RR";
         History.Clear();
@@ -334,6 +341,7 @@ public partial class LiveVm : PageVm
 {
     public override string Title => "Live Lobby";
     public override string Glyph => "◉";
+    public LiveVm() => IconAsset = "icons/monitor";
     [ObservableProperty] private string _status = "Not scanning";
     [ObservableProperty] private bool _busy;
     public ObservableCollection<LivePlayer> Allies { get; } = [];
@@ -372,6 +380,7 @@ public partial class AgentsVm : PageVm
 {
     public override string Title => "Agent Picker";
     public override string Glyph => "◆";
+    public AgentsVm() => IconAsset = "agents/Reyna";
     [ObservableProperty] private string _status = "Join a match";
     [ObservableProperty] private string? _selectedName;
     public ObservableCollection<AgentCard> Agents { get; } = [];

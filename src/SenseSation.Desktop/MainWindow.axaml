@@ -44,8 +44,8 @@
                     <!-- hero -->
                     <Border Classes="card">
                         <Grid ColumnDefinitions="Auto,*,Auto">
-                            <StackPanel Spacing="6" HorizontalAlignment="Center">
-                                <Border Width="124" Height="124" CornerRadius="62" BorderThickness="7"
+                            <StackPanel Spacing="6" HorizontalAlignment="Center" Margin="0,0,8,0">
+                                <Border Width="112" Height="112" CornerRadius="56" BorderThickness="7"
                                         BorderBrush="{DynamicResource AccentBrush}" Background="#FF0A1219">
                                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="1">
                                         <Image Source="{Binding Tier, Converter={x:Static vm:Conv.RankIcon}}"
@@ -64,8 +64,8 @@
                                 <TextBlock Text="{Binding Headline}" TextWrapping="Wrap" FontSize="15" FontWeight="SemiBold"/>
                             </StackPanel>
 
-                            <StackPanel Grid.Column="2" Spacing="6" HorizontalAlignment="Center">
-                                <Border Width="120" Height="120" CornerRadius="60" BorderThickness="8"
+                            <StackPanel Grid.Column="2" Spacing="6" HorizontalAlignment="Center" Margin="14,0,10,0">
+                                <Border Width="112" Height="112" CornerRadius="56" BorderThickness="7"
                                         BorderBrush="{DynamicResource Accent2Brush}">
                                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding WinRate, StringFormat='{}{0:0}%'}" Classes="accentGlow" FontWeight="Black" FontSize="26" HorizontalAlignment="Center"/>
@@ -351,12 +351,12 @@
         </DataTemplate>
     </Window.DataTemplates>
 
-    <Grid ColumnDefinitions="240,*">
+    <Grid ColumnDefinitions="204,*">
         <!-- Sidebar -->
         <Border Background="{StaticResource Bg1}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0">
-            <DockPanel Margin="16,22">
+            <DockPanel Margin="12,22">
                 <Image DockPanel.Dock="Top" Source="avares://SenseSation/Assets/logo/SenseSationLogo.png"
-                       Stretch="Uniform" HorizontalAlignment="Left" MaxHeight="58" Margin="2,0,2,30"/>
+                       Stretch="Uniform" HorizontalAlignment="Center" MaxHeight="62" Margin="0,0,0,30"/>
 
                 <TextBlock DockPanel.Dock="Bottom" Text="{Binding Version}" Classes="label"
                            Foreground="{StaticResource FaintBrush}" Margin="6,18,0,0"/>
@@ -364,12 +364,17 @@
                 <ItemsControl ItemsSource="{Binding Pages}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:PageVm">
-                            <Button Classes="nav" Classes.active="{Binding IsActive}" Margin="0,0,0,7"
+                            <Button Classes="nav" Classes.active="{Binding IsActive}" Margin="0,0,0,6"
                                     Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).NavigateCommand}"
                                     CommandParameter="{Binding}">
-                                <StackPanel Orientation="Horizontal" Spacing="12">
-                                    <TextBlock Text="{Binding Glyph}" FontSize="15" Width="20"/>
-                                    <TextBlock Text="{Binding Title}"/>
+                                <StackPanel Orientation="Horizontal" Spacing="11">
+                                    <Panel Width="22" Height="22" VerticalAlignment="Center">
+                                        <Image Source="{Binding IconAsset, Converter={x:Static vm:Conv.AssetBitmap}}"
+                                               IsVisible="{Binding IconAsset, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                        <TextBlock Text="{Binding Glyph}" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   IsVisible="{Binding IconAsset, Converter={x:Static StringConverters.IsNullOrEmpty}}"/>
+                                    </Panel>
+                                    <TextBlock Text="{Binding Title}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </DataTemplate>
