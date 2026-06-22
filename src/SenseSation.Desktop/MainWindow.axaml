@@ -37,12 +37,16 @@
         <DataTemplate DataType="vm:DashboardVm">
             <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="16" MaxWidth="{Binding $parent[ScrollViewer].Bounds.Width}">
-                    <Grid ColumnDefinitions="*,Auto">
+                    <Grid ColumnDefinitions="*,Auto,Auto">
                         <StackPanel>
                             <TextBlock Classes="h1" Text="DASHBOARD"/>
                             <TextBlock Classes="muted" Text="{Binding Headline}" TextWrapping="Wrap" MaxWidth="760"/>
                         </StackPanel>
-                        <Button Grid.Column="1" Classes="icon" Content="↻" ToolTip.Tip="Refresh Data" VerticalAlignment="Top"
+                        <Border Grid.Column="1" Classes="chip" VerticalAlignment="Top" Margin="0,4,10,0">
+                            <TextBlock Text="{Binding Session}" FontWeight="SemiBold" FontSize="12"
+                                       Foreground="{DynamicResource Accent2Brush}"/>
+                        </Border>
+                        <Button Grid.Column="2" Classes="icon" Content="↻" ToolTip.Tip="Refresh Data" VerticalAlignment="Top"
                                 Command="{Binding RefreshCommand}"/>
                     </Grid>
 
@@ -125,6 +129,14 @@
                         <TextBlock Classes="h1" Text="MATCHES"/>
                         <Button Grid.Column="1" Classes="icon" Content="↻" ToolTip.Tip="Refresh Data" Command="{Binding RefreshCommand}"/>
                     </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="filter" Content="All" Command="{Binding SetFilterCommand}" CommandParameter="All"
+                                BorderBrush="{Binding Filter, Converter={x:Static vm:Conv.EqAccent}, ConverterParameter=All}"/>
+                        <Button Classes="filter" Content="Wins" Command="{Binding SetFilterCommand}" CommandParameter="Wins"
+                                BorderBrush="{Binding Filter, Converter={x:Static vm:Conv.EqAccent}, ConverterParameter=Wins}"/>
+                        <Button Classes="filter" Content="Losses" Command="{Binding SetFilterCommand}" CommandParameter="Losses"
+                                BorderBrush="{Binding Filter, Converter={x:Static vm:Conv.EqAccent}, ConverterParameter=Losses}"/>
+                    </StackPanel>
                     <Border Classes="card">
                         <StackPanel>
                             <Grid ColumnDefinitions="80,*,*,70,110,55,60" Margin="4,0,4,6">
@@ -137,6 +149,66 @@
                                 <TextBlock Grid.Column="6" Classes="label" Text="ADR" TextAlignment="Right"/>
                             </Grid>
                             <ItemsControl ItemsSource="{Binding Items}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </DataTemplate>
+
+        <!-- ===== Insights ===== -->
+        <DataTemplate DataType="vm:InsightsVm">
+            <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Spacing="16" MaxWidth="{Binding $parent[ScrollViewer].Bounds.Width}">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel>
+                            <TextBlock Classes="h1" Text="INSIGHTS"/>
+                            <TextBlock Classes="muted" Text="{Binding Summary}" TextWrapping="Wrap" MaxWidth="760"/>
+                        </StackPanel>
+                        <Button Grid.Column="1" Classes="icon" Content="↻" ToolTip.Tip="Refresh Data" Command="{Binding RefreshCommand}"/>
+                    </Grid>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <TextBlock Classes="label" Text="BY MAP"/>
+                            <ItemsControl ItemsSource="{Binding Maps}" Margin="0,8,0,0">
+                                <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:StatRow">
+                                    <Border Classes="row">
+                                        <Grid ColumnDefinitions="*,130,52,84,74">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            <ProgressBar Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding WinPct}"
+                                                         Height="8" CornerRadius="4" Background="#0A0C18"
+                                                         Foreground="{Binding WinBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding WinLabel}" Foreground="{Binding WinBrush}"
+                                                       FontWeight="Bold" FontSize="13" TextAlignment="Right" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding KdLabel}" Classes="muted" TextAlignment="Right" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="4" Text="{Binding GamesLabel}" Classes="muted" FontSize="12" TextAlignment="Right" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <TextBlock Classes="label" Text="BY AGENT"/>
+                            <ItemsControl ItemsSource="{Binding Agents}" Margin="0,8,0,0">
+                                <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:StatRow">
+                                    <Border Classes="row">
+                                        <Grid ColumnDefinitions="34,*,130,52,84,74">
+                                            <Border Width="28" Height="28" CornerRadius="6" ClipToBounds="True" Background="#FF0A1219" VerticalAlignment="Center">
+                                                <Image Source="{Binding Name, Converter={x:Static vm:Conv.AgentIcon}}" Stretch="UniformToFill"/>
+                                            </Border>
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                            <ProgressBar Grid.Column="2" Minimum="0" Maximum="100" Value="{Binding WinPct}"
+                                                         Height="8" CornerRadius="4" Background="#0A0C18"
+                                                         Foreground="{Binding WinBrush}" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding WinLabel}" Foreground="{Binding WinBrush}"
+                                                       FontWeight="Bold" FontSize="13" TextAlignment="Right" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="4" Text="{Binding KdLabel}" Classes="muted" TextAlignment="Right" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="5" Text="{Binding GamesLabel}" Classes="muted" FontSize="12" TextAlignment="Right" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
                     </Border>
                 </StackPanel>

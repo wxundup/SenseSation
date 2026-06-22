@@ -199,6 +199,22 @@
             <Setter Property="Background" Value="#18FFFFFF"/>
         </Style>
 
+        <!-- Filter chip button (Matches) -->
+        <Style Selector="Button.filter">
+            <Setter Property="Background" Value="{DynamicResource Panel2Brush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="CornerRadius" Value="999"/>
+            <Setter Property="Padding" Value="16,5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button.filter:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource Panel2Brush}"/>
+            <Setter Property="TextElement.Foreground" Value="White"/>
+        </Style>
+
         <Style Selector="TextBox">
             <Setter Property="Background" Value="#FF0A1219"/>
             <Setter Property="CornerRadius" Value="8"/>

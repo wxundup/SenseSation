@@ -46,6 +46,7 @@ public partial class MainWindowViewModel : ObservableObject
 
         Pages.Add(new DashboardVm());
         Pages.Add(new MatchesVm());
+        Pages.Add(new InsightsVm());
         Pages.Add(new TrainerVm());
         Pages.Add(new RankVm());
         Pages.Add(new LiveVm());
@@ -128,6 +129,7 @@ public partial class DashboardVm : PageVm
     [ObservableProperty] private string _entries = "0";
     [ObservableProperty] private string _kast = "0%";
     [ObservableProperty] private string _topAgent = "—";
+    [ObservableProperty] private string _session = "";
     public ObservableCollection<MatchSummary> Recent { get; } = [];
     public ObservableCollection<Weakness> Weaknesses { get; } = [];
     public ObservableCollection<Drill> Plan { get; } = [];
@@ -151,12 +153,25 @@ public partial class DashboardVm : PageVm
         Entries = m.FirstKillsPerMatch.ToString("0.#");
         Kast = $"{m.Kast:0}%";
         TopAgent = string.IsNullOrEmpty(m.TopAgent) ? "—" : m.TopAgent;
+        Session = BuildSession(d);
         Recent.Clear();
         foreach (var x in d.Matches.Take(6)) Recent.Add(x);
         Weaknesses.Clear();
         foreach (var w in d.Report?.Weaknesses ?? []) Weaknesses.Add(w);
         Plan.Clear();
         foreach (var p in d.Report?.Plan ?? []) Plan.Add(p);
+    }
+
+    // "Today: 2W · 1L · +18 RR" — only the games played since local midnight.
+    private static string BuildSession(AppData d)
+    {
+        var today = DateTimeOffset.Now.LocalDateTime.Date;
+        var games = d.Matches.Where(x => x.StartedAt.LocalDateTime.Date == today).ToList();
+        if (games.Count == 0) return "No games today yet";
+        int w = games.Count(x => x.Result == MatchResult.Win);
+        int l = games.Count(x => x.Result == MatchResult.Loss);
+        int rr = d.RrHistory.Where(s => s.At.LocalDateTime.Date == today).Sum(s => s.RrDelta);
+        return $"Today: {w}W · {l}L · {(rr >= 0 ? "+" : "")}{rr} RR";
     }
 
     [RelayCommand] private async Task Refresh() => await Data.LoadAsync();
@@ -168,10 +183,67 @@ public partial class MatchesVm : PageVm
     public override string Title => "Matches";
     public override string Glyph => "⚔";
     public ObservableCollection<MatchSummary> Items { get; } = [];
+    [ObservableProperty] private string _filter = "All"; // All / Wins / Losses
 
     public MatchesVm() => Data.Changed += () => Dispatcher.UIThread.Post(Sync);
     public override Task OnShownAsync() { Sync(); return Task.CompletedTask; }
-    private void Sync() { Items.Clear(); foreach (var m in Data.Matches) Items.Add(m); }
+    private void Sync()
+    {
+        Items.Clear();
+        foreach (var m in Data.Matches.Where(Keep)) Items.Add(m);
+    }
+    private bool Keep(MatchSummary m) => Filter switch
+    {
+        "Wins" => m.Result == MatchResult.Win,
+        "Losses" => m.Result == MatchResult.Loss,
+        _ => true,
+    };
+    [RelayCommand] private void SetFilter(string f) { Filter = f; Sync(); }
+    [RelayCommand] private async Task Refresh() => await Data.LoadAsync();
+}
+
+// ---- Insights ---------------------------------------------------------------
+/// <summary>One aggregated row (a map or an agent) for the Insights breakdowns.</summary>
+public sealed record StatRow(string Name, int Games, double WinPct, double Kd)
+{
+    private static readonly Avalonia.Media.IBrush Good = Avalonia.Media.Brush.Parse("#1FD18E");
+    private static readonly Avalonia.Media.IBrush Bad = Avalonia.Media.Brush.Parse("#FF4655");
+    public string GamesLabel => Games == 1 ? "1 game" : $"{Games} games";
+    public string WinLabel => $"{WinPct:0}%";
+    public string KdLabel => $"{Kd:0.00} K/D";
+    public Avalonia.Media.IBrush WinBrush => WinPct >= 50 ? Good : Bad;
+}
+
+public partial class InsightsVm : PageVm
+{
+    public override string Title => "Insights";
+    public override string Glyph => "▦";
+    public ObservableCollection<StatRow> Maps { get; } = [];
+    public ObservableCollection<StatRow> Agents { get; } = [];
+    [ObservableProperty] private string _summary = "";
+
+    public InsightsVm() => Data.Changed += () => Dispatcher.UIThread.Post(Sync);
+    public override Task OnShownAsync() { Sync(); return Task.CompletedTask; }
+    private void Sync()
+    {
+        Maps.Clear(); Agents.Clear();
+        foreach (var r in Group(Data.Matches, m => m.Map)) Maps.Add(r);
+        foreach (var r in Group(Data.Matches, m => m.Agent)) Agents.Add(r);
+        Summary = Data.Matches.Count == 0
+            ? "No matches loaded yet — set your account in Settings."
+            : $"Across {Data.Matches.Count} matches — where you win and where you don't.";
+    }
+
+    // Group matches by map/agent → games, win%, avg K/D. Most-played first.
+    private static IEnumerable<StatRow> Group(IEnumerable<MatchSummary> ms, Func<MatchSummary, string> key) =>
+        ms.Where(m => !string.IsNullOrWhiteSpace(key(m)))
+          .GroupBy(key)
+          .Select(g => new StatRow(g.Key, g.Count(),
+              100.0 * g.Count(x => x.Result == MatchResult.Win) / g.Count(),
+              Math.Round(g.Average(x => x.You.Kd), 2)))
+          .OrderByDescending(r => r.Games).ThenByDescending(r => r.WinPct)
+          .ToList();
+
     [RelayCommand] private async Task Refresh() => await Data.LoadAsync();
 }
 
@@ -192,6 +264,16 @@ public static class Conv
 
     public static readonly Avalonia.Data.Converters.IValueConverter SelBorder =
         new Avalonia.Data.Converters.FuncValueConverter<bool, Avalonia.Media.IBrush>(b => b ? Sel : Unsel);
+
+    // Active filter chip: accent when the bound value equals ConverterParameter, else flat.
+    public static readonly Avalonia.Data.Converters.IValueConverter EqAccent = new EqAccentConv();
+    private sealed class EqAccentConv : Avalonia.Data.Converters.IValueConverter
+    {
+        public object Convert(object? v, Type t, object? p, System.Globalization.CultureInfo c)
+            => string.Equals(v as string, p as string, StringComparison.Ordinal) ? Sel : Unsel;
+        public object ConvertBack(object? v, Type t, object? p, System.Globalization.CultureInfo c)
+            => Avalonia.Data.BindingOperations.DoNothing;
+    }
 
     // Win=green, Loss=red, Draw=gold
     public static readonly Avalonia.Data.Converters.IValueConverter ResultBrush =
