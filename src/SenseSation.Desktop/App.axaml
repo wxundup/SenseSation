@@ -79,7 +79,7 @@
             <Setter Property="Effect"><DropShadowEffect Color="#FF000000" BlurRadius="10" OffsetX="0" OffsetY="2" Opacity="0.6"/></Setter>
         </Style>
         <Style Selector="TextBlock.accentGlow">
-            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
             <Setter Property="Effect"><DropShadowEffect Color="#FFFF4655" BlurRadius="16" OffsetX="0" OffsetY="0" Opacity="0.7"/></Setter>
         </Style>
 
@@ -128,13 +128,13 @@
             <Setter Property="TextElement.Foreground" Value="{StaticResource TextBrush}"/>
         </Style>
         <Style Selector="Button.nav.active /template/ ContentPresenter">
-            <Setter Property="Background" Value="{StaticResource AccentGrad}"/>
+            <Setter Property="Background" Value="{DynamicResource AccentGrad}"/>
             <Setter Property="TextElement.Foreground" Value="White"/>
         </Style>
 
         <!-- Primary button -->
         <Style Selector="Button.primary">
-            <Setter Property="Background" Value="{StaticResource AccentGrad}"/>
+            <Setter Property="Background" Value="{DynamicResource AccentGrad}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="CornerRadius" Value="10"/>
             <Setter Property="Padding" Value="18,10"/>
@@ -147,6 +147,29 @@
         <Style Selector="Button.primary /template/ ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
         </Style>
+
+        <!-- Icon button (refresh etc.) -->
+        <Style Selector="Button.icon">
+            <Setter Property="Background" Value="{DynamicResource Panel2Brush}"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="FontSize" Value="17"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15"/>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.icon:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AccentBrush}"/>
+            <Setter Property="TextElement.Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.icon:pressed"><Setter Property="RenderTransform" Value="scale(0.92)"/></Style>
 
         <!-- Chip -->
         <Style Selector="Border.chip">

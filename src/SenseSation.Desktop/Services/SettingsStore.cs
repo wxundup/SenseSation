@@ -17,10 +17,12 @@ public sealed class SettingsStore
 
     public SettingsStore()
     {
-        if (TryLoad(out var saved, out var savedKey))
+        if (TryLoad(out var dto) && dto is not null)
         {
-            _current = saved;
-            _henrikKey = savedKey;
+            _current = new RiotId(dto.Region ?? "eu", dto.Name ?? "", dto.Tag ?? "");
+            _henrikKey = dto.HenrikApiKey ?? "";
+            Theme = dto.Theme ?? "Valorant Red";
+            UseRankTheme = dto.UseRankTheme ?? false;
         }
         else
         {
@@ -34,8 +36,12 @@ public sealed class SettingsStore
     public bool HasHenrikKey => !string.IsNullOrWhiteSpace(_henrikKey);
     public bool IsConfigured => !string.IsNullOrWhiteSpace(_current.Name) && !string.IsNullOrWhiteSpace(_current.Tag);
 
+    public string Theme { get; private set; } = "Valorant Red";
+    public bool UseRankTheme { get; private set; }
+
     public void SaveAccount(RiotId id) { _current = id; Persist(); }
     public void SaveHenrikKey(string key) { _henrikKey = key?.Trim() ?? ""; Persist(); }
+    public void SaveTheme(string theme, bool useRank) { Theme = theme; UseRankTheme = useRank; Persist(); }
 
     private void Persist()
     {
@@ -43,25 +49,23 @@ public sealed class SettingsStore
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             File.WriteAllText(_path, JsonSerializer.Serialize(
-                new Dto(_current.Region, _current.Name, _current.Tag, _henrikKey)));
+                new Dto(_current.Region, _current.Name, _current.Tag, _henrikKey, Theme, UseRankTheme)));
         }
         catch { /* best-effort */ }
     }
 
-    private bool TryLoad(out RiotId id, out string key)
+    private bool TryLoad(out Dto? dto)
     {
-        id = default; key = "";
+        dto = null;
         try
         {
             if (!File.Exists(_path)) return false;
-            var dto = JsonSerializer.Deserialize<Dto>(File.ReadAllText(_path));
-            if (dto is null) return false;
-            id = new RiotId(dto.Region ?? "eu", dto.Name ?? "", dto.Tag ?? "");
-            key = dto.HenrikApiKey ?? "";
-            return true;
+            dto = JsonSerializer.Deserialize<Dto>(File.ReadAllText(_path));
+            return dto is not null;
         }
         catch { return false; }
     }
 
-    private sealed record Dto(string? Region, string? Name, string? Tag, string? HenrikApiKey);
+    private sealed record Dto(string? Region, string? Name, string? Tag, string? HenrikApiKey,
+        string? Theme = null, bool? UseRankTheme = null);
 }

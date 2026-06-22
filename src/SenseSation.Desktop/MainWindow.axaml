@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:SenseSation.Desktop.ViewModels"
         xmlns:core="clr-namespace:SenseSation.Core.Models;assembly=SenseSation.Core"
+        xmlns:train="clr-namespace:SenseSation.Core.Training;assembly=SenseSation.Core"
         x:Class="SenseSation.Desktop.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="SenseSation" Width="1280" Height="820"
@@ -36,7 +37,7 @@
                             <TextBlock Classes="h1" Text="DASHBOARD"/>
                             <TextBlock Classes="muted" Text="{Binding Headline}" TextWrapping="Wrap" MaxWidth="760"/>
                         </StackPanel>
-                        <Button Grid.Column="1" Classes="primary" Content="↻ Refresh" VerticalAlignment="Top"
+                        <Button Grid.Column="1" Classes="icon" Content="↻" ToolTip.Tip="Refresh Data" VerticalAlignment="Top"
                                 Command="{Binding RefreshCommand}"/>
                     </Grid>
 
@@ -44,13 +45,18 @@
                     <Border Classes="card">
                         <Grid ColumnDefinitions="Auto,*,Auto">
                             <StackPanel Spacing="6" HorizontalAlignment="Center">
-                                <Border Width="120" Height="120" CornerRadius="60" BorderThickness="8"
-                                        BorderBrush="{StaticResource AccentBrush}">
-                                    <TextBlock Text="{Binding Rank}" FontWeight="Bold" FontSize="15"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"
-                                               TextAlignment="Center" TextWrapping="Wrap" MaxWidth="100"/>
+                                <Border Width="124" Height="124" CornerRadius="62" BorderThickness="7"
+                                        BorderBrush="{DynamicResource AccentBrush}" Background="#FF0A1219">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="1">
+                                        <Image Source="{Binding Tier, Converter={x:Static vm:Conv.RankIcon}}"
+                                               Width="46" Height="46" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="{Binding Rank}" FontWeight="Bold" FontSize="13"
+                                                   HorizontalAlignment="Center" TextAlignment="Center"/>
+                                        <TextBlock Text="{Binding Rr}" Foreground="{DynamicResource AccentBrush}"
+                                                   FontWeight="Bold" FontSize="12" HorizontalAlignment="Center"/>
+                                    </StackPanel>
                                 </Border>
-                                <TextBlock Text="Current Rank" Classes="muted" HorizontalAlignment="Center" FontSize="11"/>
+                                <TextBlock Text="CURRENT RANK" Classes="label" HorizontalAlignment="Center"/>
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Margin="26,0" VerticalAlignment="Center" Spacing="6">
@@ -60,7 +66,7 @@
 
                             <StackPanel Grid.Column="2" Spacing="6" HorizontalAlignment="Center">
                                 <Border Width="120" Height="120" CornerRadius="60" BorderThickness="8"
-                                        BorderBrush="{StaticResource Accent2Brush}">
+                                        BorderBrush="{DynamicResource Accent2Brush}">
                                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding WinRate, StringFormat='{}{0:0}%'}" Classes="accentGlow" FontWeight="Black" FontSize="26" HorizontalAlignment="Center"/>
                                         <TextBlock Text="{Binding WinLoss}" Classes="muted" FontSize="11" HorizontalAlignment="Center"/>
@@ -87,10 +93,53 @@
                         </Border>
                     </UniformGrid>
 
+                    <Border Classes="card accentEdge">
+                        <StackPanel Spacing="14">
+                            <TextBlock Classes="label" Text="GAMESENSE COACHING"/>
+                            <TextBlock Text="{Binding Headline}" TextWrapping="Wrap" FontSize="14" FontWeight="SemiBold"/>
+                            <StackPanel Spacing="8">
+                                <TextBlock Classes="label" Text="BIGGEST WEAKNESSES" Foreground="{DynamicResource AccentBrush}"/>
+                                <ItemsControl ItemsSource="{Binding Weaknesses}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="train:Weakness">
+                                            <StackPanel Margin="0,0,0,9">
+                                                <TextBlock Text="{Binding Benchmark.Label}" FontWeight="Bold"/>
+                                                <TextBlock Text="{Binding Critique}" Classes="muted" TextWrapping="Wrap" FontSize="13"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                            <StackPanel Spacing="8">
+                                <TextBlock Classes="label" Text="NEXT IMPROVEMENT STEPS" Foreground="{DynamicResource AccentBrush}"/>
+                                <ItemsControl ItemsSource="{Binding Plan}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="train:Drill">
+                                            <StackPanel Margin="0,0,0,9">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding How}" Classes="muted" TextWrapping="Wrap" FontSize="13"/>
+                                                <TextBlock Text="{Binding Where}" Foreground="{DynamicResource Accent2Brush}" FontSize="12"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
                     <Border Classes="card">
                         <StackPanel>
                             <TextBlock Classes="label" Text="RECENT MATCHES"/>
-                            <ItemsControl ItemsSource="{Binding Recent}" Margin="0,8,0,0"/>
+                            <Grid ColumnDefinitions="80,*,*,70,110,55,60" Margin="4,8,4,4">
+                                <TextBlock Classes="label" Text="RESULT"/>
+                                <TextBlock Grid.Column="1" Classes="label" Text="AGENT"/>
+                                <TextBlock Grid.Column="2" Classes="label" Text="MAP"/>
+                                <TextBlock Grid.Column="3" Classes="label" Text="SCORE"/>
+                                <TextBlock Grid.Column="4" Classes="label" Text="K / D / A"/>
+                                <TextBlock Grid.Column="5" Classes="label" Text="HS%"/>
+                                <TextBlock Grid.Column="6" Classes="label" Text="ADR" TextAlignment="Right"/>
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding Recent}"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -103,10 +152,21 @@
                 <StackPanel Spacing="16">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="h1" Text="MATCHES"/>
-                        <Button Grid.Column="1" Classes="primary" Content="↻ Refresh" Command="{Binding RefreshCommand}"/>
+                        <Button Grid.Column="1" Classes="icon" Content="↻" ToolTip.Tip="Refresh Data" Command="{Binding RefreshCommand}"/>
                     </Grid>
                     <Border Classes="card">
-                        <ItemsControl ItemsSource="{Binding Items}"/>
+                        <StackPanel>
+                            <Grid ColumnDefinitions="80,*,*,70,110,55,60" Margin="4,0,4,6">
+                                <TextBlock Classes="label" Text="RESULT"/>
+                                <TextBlock Grid.Column="1" Classes="label" Text="AGENT"/>
+                                <TextBlock Grid.Column="2" Classes="label" Text="MAP"/>
+                                <TextBlock Grid.Column="3" Classes="label" Text="SCORE"/>
+                                <TextBlock Grid.Column="4" Classes="label" Text="K / D / A"/>
+                                <TextBlock Grid.Column="5" Classes="label" Text="HS%"/>
+                                <TextBlock Grid.Column="6" Classes="label" Text="ADR" TextAlignment="Right"/>
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding Items}"/>
+                        </StackPanel>
                     </Border>
                 </StackPanel>
             </ScrollViewer>
@@ -118,7 +178,7 @@
                 <StackPanel Spacing="16">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="h1" Text="SMART TRAINER"/>
-                        <Button Grid.Column="1" Classes="primary" Content="↻ Refresh" Command="{Binding RefreshCommand}"/>
+                        <Button Grid.Column="1" Classes="icon" Content="↻" ToolTip.Tip="Refresh Data" Command="{Binding RefreshCommand}"/>
                     </Grid>
                     <Border Classes="card" Background="#1A1F3A">
                         <TextBlock Text="{Binding Headline}" TextWrapping="Wrap" FontWeight="SemiBold"/>
@@ -164,7 +224,7 @@
                                             <StackPanel Margin="0,0,0,10">
                                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
                                                 <TextBlock Text="{Binding How}" Classes="muted" TextWrapping="Wrap" FontSize="13"/>
-                                                <TextBlock Text="{Binding Where}" Foreground="{StaticResource Accent2Brush}" FontSize="12"/>
+                                                <TextBlock Text="{Binding Where}" Foreground="{DynamicResource Accent2Brush}" FontSize="12"/>
                                             </StackPanel>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -182,7 +242,7 @@
                 <StackPanel Spacing="16">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="h1" Text="RANK TRACKER"/>
-                        <Button Grid.Column="1" Classes="primary" Content="↻ Refresh" Command="{Binding RefreshCommand}"/>
+                        <Button Grid.Column="1" Classes="icon" Content="↻" ToolTip.Tip="Refresh Data" Command="{Binding RefreshCommand}"/>
                     </Grid>
                     <UniformGrid Columns="2">
                         <Border Classes="card" Margin="0,0,8,0"><StackPanel><TextBlock Classes="label" Text="CURRENT RANK"/><TextBlock Text="{Binding Rank}" FontSize="26" FontWeight="Bold"/></StackPanel></Border>
@@ -216,7 +276,7 @@
                 <StackPanel Spacing="16">
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel><TextBlock Classes="h1" Text="LIVE LOBBY"/><TextBlock Text="{Binding Status}" Classes="muted"/></StackPanel>
-                        <Button Grid.Column="1" Classes="primary" Content="↻ Scan" Command="{Binding ScanCommand}" IsEnabled="{Binding !Busy}"/>
+                        <Button Grid.Column="1" Classes="icon" Content="↻" ToolTip.Tip="Scan Lobby" Command="{Binding ScanCommand}" IsEnabled="{Binding !Busy}"/>
                     </Grid>
                     <UniformGrid Columns="2">
                         <Border Classes="card" Margin="0,0,8,0">
@@ -267,7 +327,7 @@
                                                 <Image Source="{Binding Name, Converter={x:Static vm:Conv.AgentIcon}}" Stretch="UniformToFill"/>
                                             </Border>
                                             <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding Role}" FontSize="10" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/>
+                                                <TextBlock Text="{Binding Role}" FontSize="10" Foreground="{DynamicResource AccentBrush}" FontWeight="Bold"/>
                                                 <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="Bold"/>
                                                 <TextBlock Text="{Binding Stats}" Classes="muted" FontSize="11"/>
                                             </StackPanel>
@@ -308,6 +368,18 @@
                             <Button Classes="primary" Content="Save &amp; load" HorizontalAlignment="Left" Command="{Binding SaveAccountCommand}"/>
                         </StackPanel>
                     </Border>
+                    <Border Classes="card accentEdge">
+                        <StackPanel Spacing="10">
+                            <TextBlock Classes="label" Text="THEME"/>
+                            <Grid ColumnDefinitions="*,Auto">
+                                <ComboBox ItemsSource="{Binding Themes}" SelectedItem="{Binding Theme}"
+                                          IsEnabled="{Binding !UseRankTheme}" HorizontalAlignment="Stretch"/>
+                                <CheckBox Grid.Column="1" Content="Use Rank Theme" IsChecked="{Binding UseRankTheme}" Margin="12,0,0,0"/>
+                            </Grid>
+                            <TextBlock Classes="muted" FontSize="12"
+                                       Text="Applies instantly. Rank theme recolors the app by your current rank."/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
         </DataTemplate>
@@ -316,24 +388,17 @@
     <Grid ColumnDefinitions="240,*">
         <!-- Sidebar -->
         <Border Background="{StaticResource Bg1}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,1,0">
-            <DockPanel Margin="14,20">
-                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="6,0,0,24">
-                    <Border Width="38" Height="38" CornerRadius="10" Background="{StaticResource AccentBrush}">
-                        <TextBlock Text="S" FontWeight="Bold" FontSize="20" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="SenseSation" FontWeight="Bold" FontSize="17"/>
-                        <TextBlock Text="GAMESENSE OS" FontSize="9" Foreground="{StaticResource Accent2Brush}" LetterSpacing="3"/>
-                    </StackPanel>
-                </StackPanel>
+            <DockPanel Margin="16,22">
+                <Image DockPanel.Dock="Top" Source="avares://SenseSation/Assets/logo/SenseSationLogo.png"
+                       Stretch="Uniform" HorizontalAlignment="Left" MaxHeight="58" Margin="2,0,2,30"/>
 
-                <TextBlock DockPanel.Dock="Bottom" Text="v2.0 · TACTICAL EDITION" Classes="label"
-                           Foreground="{StaticResource FaintBrush}" Margin="6,16,0,0"/>
+                <TextBlock DockPanel.Dock="Bottom" Text="{Binding Version}" Classes="label"
+                           Foreground="{StaticResource FaintBrush}" Margin="6,18,0,0"/>
 
                 <ItemsControl ItemsSource="{Binding Pages}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:PageVm">
-                            <Button Classes="nav" Classes.active="{Binding IsActive}" Margin="0,0,0,3"
+                            <Button Classes="nav" Classes.active="{Binding IsActive}" Margin="0,0,0,7"
                                     Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).NavigateCommand}"
                                     CommandParameter="{Binding}">
                                 <StackPanel Orientation="Horizontal" Spacing="12">

@@ -31,13 +31,17 @@ public partial class MainWindowViewModel : ObservableObject
     [ObservableProperty] private PageVm? _current;
     [ObservableProperty] private string _account = "Loading…";
     [ObservableProperty] private string _rankText = "";
-    [ObservableProperty] private string _source = "";
+    [ObservableProperty] private int _rankTier;
     [ObservableProperty] private bool _ready;
+
+    public string Version { get; } =
+        "v" + (System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "2.1.0");
 
     public async Task InitAsync()
     {
         await Bootstrap.InitAsync();
-        Bootstrap.Data.Changed += () => OnUi(RefreshTopbar);
+        OnUi(ApplyTheme);
+        Bootstrap.Data.Changed += () => OnUi(() => { RefreshTopbar(); if (Bootstrap.Settings.UseRankTheme) ApplyTheme(); });
 
         Pages.Add(new DashboardVm());
         Pages.Add(new MatchesVm());
@@ -72,8 +76,17 @@ public partial class MainWindowViewModel : ObservableObject
         Account = d.SourceNeedsRiotId
             ? (d.IsConfigured ? $"{d.Account.Name}#{d.Account.Tag}" : "No account set")
             : "Local Client";
-        RankText = d.Rank is { } r && r.Tier > 0 ? $"{r.Name} · {r.Rr} RR" : "";
-        Source = d.SourceName;
+        var r = d.Rank ?? Rank.Unranked;
+        RankText = r.Tier > 0 ? $"{r.Name} · {r.Rr} RR" : "Unranked";
+        RankTier = r.Tier;
+    }
+
+    private void ApplyTheme()
+    {
+        if (Bootstrap.Settings.UseRankTheme)
+            ThemeManager.ApplyRank((Bootstrap.Data.Rank ?? Rank.Unranked).Division);
+        else
+            ThemeManager.ApplyPreset(Bootstrap.Settings.Theme);
     }
 
     private static void OnUi(Action a) => Dispatcher.UIThread.Post(a);
@@ -88,6 +101,8 @@ public partial class DashboardVm : PageVm
     [ObservableProperty] private bool _loading;
     [ObservableProperty] private string _headline = "";
     [ObservableProperty] private string _rank = "Unranked";
+    [ObservableProperty] private string _rr = "0 RR";
+    [ObservableProperty] private int _tier;
     [ObservableProperty] private double _winRate;
     [ObservableProperty] private string _winLoss = "";
     [ObservableProperty] private string _kd = "0.00";
@@ -97,16 +112,20 @@ public partial class DashboardVm : PageVm
     [ObservableProperty] private string _kast = "0%";
     [ObservableProperty] private string _topAgent = "—";
     public ObservableCollection<MatchSummary> Recent { get; } = [];
+    public ObservableCollection<Weakness> Weaknesses { get; } = [];
+    public ObservableCollection<Drill> Plan { get; } = [];
 
     public DashboardVm() => Data.Changed += () => Dispatcher.UIThread.Post(Sync);
     public override Task OnShownAsync() { Sync(); return Task.CompletedTask; }
 
     private void Sync()
     {
-        var d = Data; var m = d.Metrics;
+        var d = Data; var m = d.Metrics; var r = d.Rank ?? SenseSation.Core.Models.Rank.Unranked;
         Loading = d.IsLoading;
         Headline = d.Report?.Headline ?? (d.IsConfigured ? "Loading…" : "Set your Riot ID in Settings.");
-        Rank = d.Rank?.Name ?? "Unranked";
+        Rank = r.Name;
+        Rr = r.Tier > 0 ? $"{r.Rr} RR" : "—";
+        Tier = r.Tier;
         WinRate = m.WinRate;
         WinLoss = $"{m.Wins}W · {m.Losses}L";
         Kd = m.Kd.ToString("0.00");
@@ -117,6 +136,10 @@ public partial class DashboardVm : PageVm
         TopAgent = string.IsNullOrEmpty(m.TopAgent) ? "—" : m.TopAgent;
         Recent.Clear();
         foreach (var x in d.Matches.Take(6)) Recent.Add(x);
+        Weaknesses.Clear();
+        foreach (var w in d.Report?.Weaknesses ?? []) Weaknesses.Add(w);
+        Plan.Clear();
+        foreach (var p in d.Report?.Plan ?? []) Plan.Add(p);
     }
 
     [RelayCommand] private async Task Refresh() => await Data.LoadAsync();
@@ -167,18 +190,23 @@ public static class Conv
     public static readonly Avalonia.Data.Converters.IValueConverter AgentIcon =
         new Avalonia.Data.Converters.FuncValueConverter<string?, Avalonia.Media.Imaging.Bitmap?>(LoadAgent);
 
-    private static Avalonia.Media.Imaging.Bitmap? LoadAgent(string? name)
+    private static Avalonia.Media.Imaging.Bitmap? LoadAgent(string? name) => Load($"agents/{name}");
+
+    public static readonly Avalonia.Data.Converters.IValueConverter RankIcon =
+        new Avalonia.Data.Converters.FuncValueConverter<int, Avalonia.Media.Imaging.Bitmap?>(t => t > 2 ? Load($"ranks/{t}") : null);
+
+    private static Avalonia.Media.Imaging.Bitmap? Load(string rel)
     {
-        if (string.IsNullOrEmpty(name)) return null;
-        if (_iconCache.TryGetValue(name, out var cached)) return cached;
+        if (string.IsNullOrEmpty(rel)) return null;
+        if (_iconCache.TryGetValue(rel, out var cached)) return cached;
         Avalonia.Media.Imaging.Bitmap? bmp = null;
         try
         {
-            using var s = Avalonia.Platform.AssetLoader.Open(new Uri($"avares://SenseSation/Assets/agents/{name}.png"));
+            using var s = Avalonia.Platform.AssetLoader.Open(new Uri($"avares://SenseSation/Assets/{rel}.png"));
             bmp = new Avalonia.Media.Imaging.Bitmap(s);
         }
-        catch { /* missing icon */ }
-        _iconCache[name] = bmp;
+        catch { /* missing */ }
+        _iconCache[rel] = bmp;
         return bmp;
     }
 }
@@ -254,14 +282,29 @@ public partial class SettingsVm : PageVm
     [ObservableProperty] private string _tag = "";
     [ObservableProperty] private string _apiKey = "";
     [ObservableProperty] private string _status = "";
+    [ObservableProperty] private string _theme = "Valorant Red";
+    [ObservableProperty] private bool _useRankTheme;
     public string[] Regions { get; } = ["eu", "na", "ap", "kr", "latam", "br"];
+    public string[] Themes { get; } = ThemeManager.Presets.Select(p => p.Name).ToArray();
 
     public override Task OnShownAsync()
     {
         Region = Data.Account.Region; Name = Data.Account.Name; Tag = Data.Account.Tag;
         ApiKey = Bootstrap.Settings.HenrikApiKey;
+        Theme = Bootstrap.Settings.Theme;
+        UseRankTheme = Bootstrap.Settings.UseRankTheme;
         Status = $"Mode: {Data.SourceName}";
         return Task.CompletedTask;
+    }
+
+    partial void OnThemeChanged(string value) => ApplyTheme();
+    partial void OnUseRankThemeChanged(bool value) => ApplyTheme();
+
+    private void ApplyTheme()
+    {
+        Bootstrap.Settings.SaveTheme(Theme, UseRankTheme);
+        if (UseRankTheme) ThemeManager.ApplyRank((Data.Rank ?? Rank.Unranked).Division);
+        else ThemeManager.ApplyPreset(Theme);
     }
 
     [RelayCommand]

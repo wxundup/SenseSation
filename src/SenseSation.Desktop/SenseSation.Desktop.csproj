@@ -7,6 +7,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AssemblyName>SenseSation</AssemblyName>
+    <Version>2.2.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
