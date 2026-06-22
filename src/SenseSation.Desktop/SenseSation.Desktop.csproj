@@ -23,6 +23,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AvaloniaResource Include="Assets/**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\SenseSation.Core\SenseSation.Core.csproj" />
     <ProjectReference Include="..\SenseSation.Data\SenseSation.Data.csproj" />
   </ItemGroup>

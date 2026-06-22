@@ -5,31 +5,43 @@
 
     <Application.Resources>
         <ResourceDictionary>
-            <!-- Revamped palette: indigo-black + violet + aqua (no Valorant red/teal) -->
-            <Color x:Key="Bg0">#FF080912</Color>
-            <Color x:Key="Bg1">#FF0E1020</Color>
-            <Color x:Key="Panel">#FF161A2E</Color>
-            <Color x:Key="Panel2">#FF1E2440</Color>
-            <Color x:Key="Line">#FF2A3052</Color>
-            <Color x:Key="Text">#FFEAECF7</Color>
-            <Color x:Key="Muted">#FF8B90B6</Color>
-            <Color x:Key="Accent">#FF7C5CFF</Color>
-            <Color x:Key="Accent2">#FF26E0C8</Color>
-            <Color x:Key="Win">#FF3DDC97</Color>
-            <Color x:Key="Loss">#FFFF5C7A</Color>
-            <Color x:Key="Gold">#FFFFCB6B</Color>
+            <!-- VALORANT palette: deep navy-black + signature red + off-white -->
+            <Color x:Key="Bg0">#FF0B141C</Color>
+            <Color x:Key="Bg1">#FF0F1923</Color>
+            <Color x:Key="Panel">#FF15212C</Color>
+            <Color x:Key="Panel2">#FF1C2A36</Color>
+            <Color x:Key="Line">#FF26333E</Color>
+            <Color x:Key="Text">#FFECE8E1</Color>
+            <Color x:Key="Muted">#FF8A99A6</Color>
+            <Color x:Key="Faint">#FF5E6E7A</Color>
+            <Color x:Key="Accent">#FFFF4655</Color>
+            <Color x:Key="Accent2">#FFFF6B75</Color>
+            <Color x:Key="Gold">#FFF5C451</Color>
+            <Color x:Key="Win">#FF1FD18E</Color>
+            <Color x:Key="Loss">#FFFF4655</Color>
 
             <SolidColorBrush x:Key="BgBrush" Color="{StaticResource Bg0}"/>
+            <SolidColorBrush x:Key="Bg1Brush" Color="{StaticResource Bg1}"/>
             <SolidColorBrush x:Key="PanelBrush" Color="{StaticResource Panel}"/>
             <SolidColorBrush x:Key="Panel2Brush" Color="{StaticResource Panel2}"/>
             <SolidColorBrush x:Key="LineBrush" Color="{StaticResource Line}"/>
             <SolidColorBrush x:Key="TextBrush" Color="{StaticResource Text}"/>
             <SolidColorBrush x:Key="MutedBrush" Color="{StaticResource Muted}"/>
+            <SolidColorBrush x:Key="FaintBrush" Color="{StaticResource Faint}"/>
             <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource Accent}"/>
             <SolidColorBrush x:Key="Accent2Brush" Color="{StaticResource Accent2}"/>
+            <SolidColorBrush x:Key="GoldBrush" Color="{StaticResource Gold}"/>
             <SolidColorBrush x:Key="WinBrush" Color="{StaticResource Win}"/>
             <SolidColorBrush x:Key="LossBrush" Color="{StaticResource Loss}"/>
-            <SolidColorBrush x:Key="GoldBrush" Color="{StaticResource Gold}"/>
+
+            <LinearGradientBrush x:Key="AccentGrad" StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Offset="0" Color="#FFFF4655"/>
+                <GradientStop Offset="1" Color="#FFC42E3A"/>
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="PanelGrad" StartPoint="0%,0%" EndPoint="0%,100%">
+                <GradientStop Offset="0" Color="#FF18242F"/>
+                <GradientStop Offset="1" Color="#FF111A22"/>
+            </LinearGradientBrush>
         </ResourceDictionary>
     </Application.Resources>
 
@@ -42,30 +54,59 @@
             <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
         </Style>
 
-        <Style Selector="TextBlock">
+        <Style Selector="TextBlock"><Setter Property="Foreground" Value="{StaticResource TextBrush}"/></Style>
+
+        <!-- Page title: heavy, tracked, with red glow -->
+        <Style Selector="TextBlock.h1">
+            <Setter Property="FontSize" Value="30"/>
+            <Setter Property="FontWeight" Value="Black"/>
+            <Setter Property="LetterSpacing" Value="1"/>
             <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
         </Style>
-        <Style Selector="TextBlock.h1">
-            <Setter Property="FontSize" Value="26"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-        </Style>
-        <Style Selector="TextBlock.h3">
-            <Setter Property="FontSize" Value="12"/>
+        <Style Selector="TextBlock.label">
+            <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
-            <Setter Property="LetterSpacing" Value="1.4"/>
+            <Setter Property="LetterSpacing" Value="1.6"/>
         </Style>
-        <Style Selector="TextBlock.muted">
-            <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+        <Style Selector="TextBlock.muted"><Setter Property="Foreground" Value="{StaticResource MutedBrush}"/></Style>
+
+        <!-- Big stat value: bright + soft glow so it reads at a glance -->
+        <Style Selector="TextBlock.value">
+            <Setter Property="FontSize" Value="32"/>
+            <Setter Property="FontWeight" Value="Black"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Effect"><DropShadowEffect Color="#FF000000" BlurRadius="10" OffsetX="0" OffsetY="2" Opacity="0.6"/></Setter>
+        </Style>
+        <Style Selector="TextBlock.accentGlow">
+            <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Effect"><DropShadowEffect Color="#FFFF4655" BlurRadius="16" OffsetX="0" OffsetY="0" Opacity="0.7"/></Setter>
         </Style>
 
-        <!-- Card -->
+        <!-- Card: gradient, hover lift -->
         <Style Selector="Border.card">
-            <Setter Property="Background" Value="{StaticResource PanelBrush}"/>
+            <Setter Property="Background" Value="{StaticResource PanelGrad}"/>
             <Setter Property="BorderBrush" Value="{StaticResource LineBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="CornerRadius" Value="14"/>
             <Setter Property="Padding" Value="18"/>
+            <Setter Property="BoxShadow" Value="0 14 34 -16 #CC000000"/>
+            <Setter Property="RenderTransform" Value="none"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18"/>
+                    <BrushTransition Property="BorderBrush" Duration="0:0:0.18"/>
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.card:pointerover">
+            <Setter Property="RenderTransform" Value="translateY(-3px)"/>
+            <Setter Property="BorderBrush" Value="#FF3A4A57"/>
+        </Style>
+        <!-- accent left rule on a card -->
+        <Style Selector="Border.accentEdge">
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderThickness" Value="3,0,0,0"/>
         </Style>
 
         <!-- Nav button -->
@@ -78,26 +119,33 @@
             <Setter Property="CornerRadius" Value="10"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Transitions">
+                <Transitions><BrushTransition Property="Background" Duration="0:0:0.15"/></Transitions>
+            </Setter>
         </Style>
         <Style Selector="Button.nav:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{StaticResource Panel2Brush}"/>
             <Setter Property="TextElement.Foreground" Value="{StaticResource TextBrush}"/>
         </Style>
-        <Style Selector="Button.nav.active">
-            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
-            <Setter Property="Foreground" Value="White"/>
-        </Style>
         <Style Selector="Button.nav.active /template/ ContentPresenter">
-            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Background" Value="{StaticResource AccentGrad}"/>
+            <Setter Property="TextElement.Foreground" Value="White"/>
         </Style>
 
         <!-- Primary button -->
         <Style Selector="Button.primary">
-            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Background" Value="{StaticResource AccentGrad}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="CornerRadius" Value="10"/>
-            <Setter Property="Padding" Value="16,9"/>
+            <Setter Property="Padding" Value="18,10"/>
             <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Transitions">
+                <Transitions><TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15"/></Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.primary:pointerover"><Setter Property="RenderTransform" Value="scale(1.04)"/></Style>
+        <Style Selector="Button.primary /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent"/>
         </Style>
 
         <!-- Chip -->
@@ -105,14 +153,19 @@
             <Setter Property="Background" Value="{StaticResource Panel2Brush}"/>
             <Setter Property="BorderBrush" Value="{StaticResource LineBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="7"/>
-            <Setter Property="Padding" Value="9,3"/>
+            <Setter Property="CornerRadius" Value="999"/>
+            <Setter Property="Padding" Value="11,4"/>
         </Style>
 
         <Style Selector="Border.row">
             <Setter Property="BorderBrush" Value="{StaticResource LineBrush}"/>
             <Setter Property="BorderThickness" Value="0,0,0,1"/>
-            <Setter Property="Padding" Value="4,9"/>
+            <Setter Property="Padding" Value="4,10"/>
+        </Style>
+
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="#FF0A1219"/>
+            <Setter Property="CornerRadius" Value="8"/>
         </Style>
     </Application.Styles>
 </Application>

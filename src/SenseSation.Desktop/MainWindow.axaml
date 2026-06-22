@@ -14,7 +14,8 @@
         <DataTemplate DataType="core:MatchSummary">
             <Border Classes="row">
                 <Grid ColumnDefinitions="80,*,*,70,110,55,60">
-                    <TextBlock Text="{Binding ResultLabel}" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding ResultLabel}" FontWeight="Black"
+                               Foreground="{Binding Result, Converter={x:Static vm:Conv.ResultBrush}}"/>
                     <TextBlock Grid.Column="1" Text="{Binding Agent}"/>
                     <TextBlock Grid.Column="2" Text="{Binding Map}"/>
                     <TextBlock Grid.Column="3" Text="{Binding ScoreLabel}" Classes="muted"/>
@@ -61,7 +62,7 @@
                                 <Border Width="120" Height="120" CornerRadius="60" BorderThickness="8"
                                         BorderBrush="{StaticResource Accent2Brush}">
                                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding WinRate, StringFormat='{}{0:0}%'}" FontWeight="Bold" FontSize="24" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="{Binding WinRate, StringFormat='{}{0:0}%'}" Classes="accentGlow" FontWeight="Black" FontSize="26" HorizontalAlignment="Center"/>
                                         <TextBlock Text="{Binding WinLoss}" Classes="muted" FontSize="11" HorizontalAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
@@ -73,22 +74,22 @@
                     <!-- tiles -->
                     <UniformGrid Columns="4" Margin="0">
                         <Border Classes="card" Margin="0,0,8,0">
-                            <StackPanel><TextBlock Classes="h3" Text="K/D RATIO"/><TextBlock Text="{Binding Kd}" FontSize="30" FontWeight="Bold"/><TextBlock Text="{Binding Adr, StringFormat='{}{0} ADR'}" Classes="muted"/></StackPanel>
+                            <StackPanel><TextBlock Classes="label" Text="K/D RATIO"/><TextBlock Text="{Binding Kd}" Classes="value"/><TextBlock Text="{Binding Adr, StringFormat='{}{0} ADR'}" Classes="muted"/></StackPanel>
                         </Border>
                         <Border Classes="card" Margin="8,0">
-                            <StackPanel><TextBlock Classes="h3" Text="HEADSHOT %"/><TextBlock Text="{Binding Hs}" FontSize="30" FontWeight="Bold"/><TextBlock Text="crosshair placement" Classes="muted"/></StackPanel>
+                            <StackPanel><TextBlock Classes="label" Text="HEADSHOT %"/><TextBlock Text="{Binding Hs}" Classes="value"/><TextBlock Text="crosshair placement" Classes="muted"/></StackPanel>
                         </Border>
                         <Border Classes="card" Margin="8,0">
-                            <StackPanel><TextBlock Classes="h3" Text="OPENING KILLS"/><TextBlock Text="{Binding Entries}" FontSize="30" FontWeight="Bold"/><TextBlock Text="per match" Classes="muted"/></StackPanel>
+                            <StackPanel><TextBlock Classes="label" Text="OPENING KILLS"/><TextBlock Text="{Binding Entries}" Classes="value"/><TextBlock Text="per match" Classes="muted"/></StackPanel>
                         </Border>
                         <Border Classes="card" Margin="8,0,0,0">
-                            <StackPanel><TextBlock Classes="h3" Text="KAST"/><TextBlock Text="{Binding Kast}" FontSize="30" FontWeight="Bold"/><TextBlock Text="round impact" Classes="muted"/></StackPanel>
+                            <StackPanel><TextBlock Classes="label" Text="KAST"/><TextBlock Text="{Binding Kast}" Classes="value"/><TextBlock Text="round impact" Classes="muted"/></StackPanel>
                         </Border>
                     </UniformGrid>
 
                     <Border Classes="card">
                         <StackPanel>
-                            <TextBlock Classes="h3" Text="RECENT MATCHES"/>
+                            <TextBlock Classes="label" Text="RECENT MATCHES"/>
                             <ItemsControl ItemsSource="{Binding Recent}" Margin="0,8,0,0"/>
                         </StackPanel>
                     </Border>
@@ -125,7 +126,7 @@
                     <Grid ColumnDefinitions="*,*" >
                         <Border Classes="card" Margin="0,0,8,0">
                             <StackPanel>
-                                <TextBlock Classes="h3" Text="PERFORMANCE VS BENCHMARKS"/>
+                                <TextBlock Classes="label" Text="PERFORMANCE VS BENCHMARKS"/>
                                 <ItemsControl ItemsSource="{Binding Bars}" Margin="0,10,0,0">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:BenchRow">
@@ -145,7 +146,7 @@
                         </Border>
                         <Border Grid.Column="1" Classes="card" Margin="8,0,0,0">
                             <StackPanel>
-                                <TextBlock Classes="h3" Text="WHAT'S COSTING YOU GAMES"/>
+                                <TextBlock Classes="label" Text="WHAT'S COSTING YOU GAMES"/>
                                 <ItemsControl ItemsSource="{Binding Weaknesses}" Margin="0,10,0,0">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -156,7 +157,7 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <TextBlock Classes="h3" Text="PRACTICE PLAN" Margin="0,8,0,0"/>
+                                <TextBlock Classes="label" Text="PRACTICE PLAN" Margin="0,8,0,0"/>
                                 <ItemsControl ItemsSource="{Binding Plan}" Margin="0,8,0,0">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -184,12 +185,12 @@
                         <Button Grid.Column="1" Classes="primary" Content="↻ Refresh" Command="{Binding RefreshCommand}"/>
                     </Grid>
                     <UniformGrid Columns="2">
-                        <Border Classes="card" Margin="0,0,8,0"><StackPanel><TextBlock Classes="h3" Text="CURRENT RANK"/><TextBlock Text="{Binding Rank}" FontSize="26" FontWeight="Bold"/></StackPanel></Border>
-                        <Border Classes="card" Margin="8,0,0,0"><StackPanel><TextBlock Classes="h3" Text="RECENT NET RR"/><TextBlock Text="{Binding NetRr}" FontSize="26" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Classes="card" Margin="0,0,8,0"><StackPanel><TextBlock Classes="label" Text="CURRENT RANK"/><TextBlock Text="{Binding Rank}" FontSize="26" FontWeight="Bold"/></StackPanel></Border>
+                        <Border Classes="card" Margin="8,0,0,0"><StackPanel><TextBlock Classes="label" Text="RECENT NET RR"/><TextBlock Text="{Binding NetRr}" FontSize="26" FontWeight="Bold"/></StackPanel></Border>
                     </UniformGrid>
                     <Border Classes="card">
                         <StackPanel>
-                            <TextBlock Classes="h3" Text="GAME BY GAME"/>
+                            <TextBlock Classes="label" Text="GAME BY GAME"/>
                             <ItemsControl ItemsSource="{Binding History}" Margin="0,8,0,0">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="core:RrSnapshot">
@@ -220,7 +221,7 @@
                     <UniformGrid Columns="2">
                         <Border Classes="card" Margin="0,0,8,0">
                             <StackPanel>
-                                <TextBlock Classes="h3" Text="YOUR TEAM"/>
+                                <TextBlock Classes="label" Text="YOUR TEAM"/>
                                 <ItemsControl ItemsSource="{Binding Allies}" Margin="0,8,0,0">
                                     <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:LivePlayer">
                                         <Border Classes="row"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="{Binding Rank}" Classes="muted"/></Grid></Border>
@@ -230,7 +231,7 @@
                         </Border>
                         <Border Grid.Column="1" Classes="card" Margin="8,0,0,0">
                             <StackPanel>
-                                <TextBlock Classes="h3" Text="ENEMY TEAM"/>
+                                <TextBlock Classes="label" Text="ENEMY TEAM"/>
                                 <ItemsControl ItemsSource="{Binding Enemies}" Margin="0,8,0,0">
                                     <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:LivePlayer">
                                         <Border Classes="row"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="{Binding Rank}" Classes="muted"/></Grid></Border>
@@ -258,14 +259,19 @@
                                 <Button Width="150" Height="92" Margin="6" Padding="0" Background="Transparent"
                                         Command="{Binding $parent[ItemsControl].((vm:AgentsVm)DataContext).PickCommand}"
                                         CommandParameter="{Binding}">
-                                    <Border CornerRadius="10" Padding="12" BorderThickness="2"
-                                            Background="{StaticResource PanelBrush}"
+                                    <Border CornerRadius="10" Padding="10" BorderThickness="2"
+                                            Background="{StaticResource PanelGrad}"
                                             BorderBrush="{Binding Selected, Converter={x:Static vm:Conv.SelBorder}}">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Role}" FontSize="10" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/>
-                                            <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="Bold"/>
-                                            <TextBlock Text="{Binding Stats}" Classes="muted" FontSize="11"/>
-                                        </StackPanel>
+                                        <Grid ColumnDefinitions="44,*">
+                                            <Border Width="40" Height="40" CornerRadius="8" ClipToBounds="True" Background="#FF0A1219">
+                                                <Image Source="{Binding Name, Converter={x:Static vm:Conv.AgentIcon}}" Stretch="UniformToFill"/>
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Role}" FontSize="10" Foreground="{StaticResource AccentBrush}" FontWeight="Bold"/>
+                                                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="Bold"/>
+                                                <TextBlock Text="{Binding Stats}" Classes="muted" FontSize="11"/>
+                                            </StackPanel>
+                                        </Grid>
                                     </Border>
                                 </Button>
                             </DataTemplate>
@@ -282,7 +288,7 @@
                     <TextBlock Classes="h1" Text="SETTINGS"/>
                     <Border Classes="card">
                         <StackPanel Spacing="8">
-                            <TextBlock Classes="h3" Text="HENRIKDEV API KEY"/>
+                            <TextBlock Classes="label" Text="HENRIKDEV API KEY"/>
                             <TextBlock Classes="muted" TextWrapping="Wrap" Text="With a key: any account, game not needed. Without: reads your running Riot client."/>
                             <TextBox Watermark="paste key" Text="{Binding ApiKey}" PasswordChar="•"/>
                             <StackPanel Orientation="Horizontal" Spacing="10">
@@ -293,7 +299,7 @@
                     </Border>
                     <Border Classes="card">
                         <StackPanel Spacing="8">
-                            <TextBlock Classes="h3" Text="TRACKED RIOT ACCOUNT"/>
+                            <TextBlock Classes="label" Text="TRACKED RIOT ACCOUNT"/>
                             <Grid ColumnDefinitions="120,*,120" >
                                 <ComboBox ItemsSource="{Binding Regions}" SelectedItem="{Binding Region}" Margin="0,0,8,0"/>
                                 <TextBox Grid.Column="1" Watermark="Riot name" Text="{Binding Name}" Margin="0,0,8,0"/>
@@ -321,9 +327,8 @@
                     </StackPanel>
                 </StackPanel>
 
-                <Border DockPanel.Dock="Bottom" Classes="chip" Margin="0,16,0,0" HorizontalAlignment="Stretch">
-                    <TextBlock Text="{Binding Source}" Classes="muted" FontSize="12"/>
-                </Border>
+                <TextBlock DockPanel.Dock="Bottom" Text="v2.0 · TACTICAL EDITION" Classes="label"
+                           Foreground="{StaticResource FaintBrush}" Margin="6,16,0,0"/>
 
                 <ItemsControl ItemsSource="{Binding Pages}">
                     <ItemsControl.ItemTemplate>
@@ -347,18 +352,19 @@
             <Border DockPanel.Dock="Top" Background="{StaticResource Bg1}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="30,14">
                 <Grid ColumnDefinitions="*,Auto">
                     <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Account}" FontWeight="SemiBold" FontSize="15"/>
+                        <TextBlock Text="{Binding Account}" FontWeight="Bold" FontSize="15"/>
                         <Border Classes="chip" IsVisible="{Binding RankText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                             <TextBlock Text="{Binding RankText}" Foreground="{StaticResource GoldBrush}" FontWeight="SemiBold" FontSize="12"/>
                         </Border>
                     </StackPanel>
-                    <Border Grid.Column="1" Classes="chip">
-                        <TextBlock Text="{Binding Source}" Foreground="{StaticResource Accent2Brush}" FontSize="12" FontWeight="SemiBold"/>
-                    </Border>
                 </Grid>
             </Border>
 
-            <ContentControl Content="{Binding Current}"/>
+            <TransitioningContentControl Content="{Binding Current}">
+                <TransitioningContentControl.PageTransition>
+                    <CrossFade Duration="0:0:0.22"/>
+                </TransitioningContentControl.PageTransition>
+            </TransitioningContentControl>
         </DockPanel>
     </Grid>
 </Window>

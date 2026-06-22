@@ -147,11 +147,40 @@ public sealed class BenchRow
 /// <summary>Tiny value converters for the views.</summary>
 public static class Conv
 {
-    private static readonly Avalonia.Media.IBrush Sel = Avalonia.Media.Brush.Parse("#26E0C8");
-    private static readonly Avalonia.Media.IBrush Unsel = Avalonia.Media.Brush.Parse("#2A3052");
+    private static readonly Avalonia.Media.IBrush Sel = Avalonia.Media.Brush.Parse("#FF4655");
+    private static readonly Avalonia.Media.IBrush Unsel = Avalonia.Media.Brush.Parse("#26333E");
 
     public static readonly Avalonia.Data.Converters.IValueConverter SelBorder =
         new Avalonia.Data.Converters.FuncValueConverter<bool, Avalonia.Media.IBrush>(b => b ? Sel : Unsel);
+
+    // Win=green, Loss=red, Draw=gold
+    public static readonly Avalonia.Data.Converters.IValueConverter ResultBrush =
+        new Avalonia.Data.Converters.FuncValueConverter<MatchResult, Avalonia.Media.IBrush>(r =>
+            r switch
+            {
+                MatchResult.Win => Avalonia.Media.Brush.Parse("#1FD18E"),
+                MatchResult.Loss => Avalonia.Media.Brush.Parse("#FF4655"),
+                _ => Avalonia.Media.Brush.Parse("#F5C451"),
+            });
+
+    private static readonly Dictionary<string, Avalonia.Media.Imaging.Bitmap?> _iconCache = new();
+    public static readonly Avalonia.Data.Converters.IValueConverter AgentIcon =
+        new Avalonia.Data.Converters.FuncValueConverter<string?, Avalonia.Media.Imaging.Bitmap?>(LoadAgent);
+
+    private static Avalonia.Media.Imaging.Bitmap? LoadAgent(string? name)
+    {
+        if (string.IsNullOrEmpty(name)) return null;
+        if (_iconCache.TryGetValue(name, out var cached)) return cached;
+        Avalonia.Media.Imaging.Bitmap? bmp = null;
+        try
+        {
+            using var s = Avalonia.Platform.AssetLoader.Open(new Uri($"avares://SenseSation/Assets/agents/{name}.png"));
+            bmp = new Avalonia.Media.Imaging.Bitmap(s);
+        }
+        catch { /* missing icon */ }
+        _iconCache[name] = bmp;
+        return bmp;
+    }
 }
 
 public partial class TrainerVm : PageVm
