@@ -448,9 +448,33 @@ public partial class SettingsVm : PageVm
 }
 
 // ---- Match detail -----------------------------------------------------------
-public sealed record ScoreRow(string Name, string Agent, string RankName, int K, int D, int A, int Hs, int Adr, bool IsSelf)
+public sealed record ScoreRow(string Name, string Agent, string RankName, int K, int D, int A, int Hs, int Adr, bool IsSelf, string Puuid)
 {
     public string Kda => $"{K} / {D} / {A}";
+}
+
+// ---- Career (shared by Live lobby + Match detail) ---------------------------
+/// <summary>Inline career popover state. Loads a player's public career from the local client.</summary>
+public partial class CareerVm : ObservableObject
+{
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(Empty))] private bool _open;
+    [ObservableProperty] private string _name = "";
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(Empty))] private bool _loading;
+    [ObservableProperty][NotifyPropertyChangedFor(nameof(Empty))] private PlayerCareer? _data;
+
+    /// <summary>Open, finished loading, and nothing came back (e.g. local client not running).</summary>
+    public bool Empty => Open && !Loading && Data is null;
+
+    public async Task Show(string? puuid, string name)
+    {
+        if (string.IsNullOrEmpty(puuid)) return;
+        Open = true; Loading = true; Data = null; Name = name;
+        try { Data = await Bootstrap.Live.GetCareerAsync(puuid); }
+        catch { /* needs the local Riot client; panel just shows no data */ }
+        finally { Loading = false; }
+    }
+
+    [RelayCommand] private void Close() => Open = false;
 }
 
 public partial class MatchDetailVm : PageVm
@@ -465,6 +489,14 @@ public partial class MatchDetailVm : PageVm
     public ObservableCollection<ScoreRow> Red { get; } = [];
     public ObservableCollection<ScoreRow> Blue { get; } = [];
     public ObservableCollection<RoundEconomy> Economy { get; } = [];
+    public CareerVm Career { get; } = new();
+
+    [RelayCommand]
+    private async Task ViewPlayer(ScoreRow? r)
+    {
+        if (r is null) return;
+        await Career.Show(r.Puuid, r.Name);
+    }
 
     public async Task Load(string matchId)
     {
@@ -481,7 +513,7 @@ public partial class MatchDetailVm : PageVm
             foreach (var p in d.AllPlayers)
             {
                 var l = d.Scoreboard.TryGetValue(p.Puuid, out var sc) ? sc : new Scoreline();
-                var row = new ScoreRow(p.NameOrAgent, p.Agent, p.Rank.Name, l.Kills, l.Deaths, l.Assists, l.HeadshotPct, l.DamagePerRound, p.IsSelf);
+                var row = new ScoreRow(p.NameOrAgent, p.Agent, p.Rank.Name, l.Kills, l.Deaths, l.Assists, l.HeadshotPct, l.DamagePerRound, p.IsSelf, p.Puuid);
                 (p.Team == Team.Red ? Red : Blue).Add(row);
             }
             foreach (var e in d.Economy) Economy.Add(e);
@@ -502,10 +534,7 @@ public partial class LiveVm : PageVm
     [ObservableProperty] private string _status = "Not scanning";
     [ObservableProperty] private string _server = "";
     [ObservableProperty] private bool _busy;
-    [ObservableProperty] private PlayerCareer? _career;
-    [ObservableProperty] private bool _careerOpen;
-    [ObservableProperty] private string _careerName = "";
-    [ObservableProperty] private bool _careerLoading;
+    public CareerVm Career { get; } = new();
     public ObservableCollection<LivePlayer> Allies { get; } = [];
     public ObservableCollection<LivePlayer> Enemies { get; } = [];
 
@@ -532,14 +561,9 @@ public partial class LiveVm : PageVm
     [RelayCommand]
     private async Task ViewCareer(LivePlayer? p)
     {
-        if (p is null || string.IsNullOrEmpty(p.Puuid)) return;
-        CareerOpen = true; CareerLoading = true; Career = null; CareerName = p.Name;
-        try { Career = await Bootstrap.Live.GetCareerAsync(p.Puuid); }
-        catch { }
-        finally { CareerLoading = false; }
+        if (p is null) return;
+        await Career.Show(p.Puuid, p.Name);
     }
-
-    [RelayCommand] private void CloseCareer() => CareerOpen = false;
 }
 
 // ---- Agents -----------------------------------------------------------------
