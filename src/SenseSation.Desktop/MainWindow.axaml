@@ -30,7 +30,7 @@
 
         <!-- ===== Dashboard ===== -->
         <DataTemplate DataType="vm:DashboardVm">
-            <ScrollViewer Padding="30">
+            <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="16">
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel>
@@ -93,40 +93,6 @@
                         </Border>
                     </UniformGrid>
 
-                    <Border Classes="card accentEdge">
-                        <StackPanel Spacing="14">
-                            <TextBlock Classes="label" Text="GAMESENSE COACHING"/>
-                            <TextBlock Text="{Binding Headline}" TextWrapping="Wrap" FontSize="14" FontWeight="SemiBold"/>
-                            <StackPanel Spacing="8">
-                                <TextBlock Classes="label" Text="BIGGEST WEAKNESSES" Foreground="{DynamicResource AccentBrush}"/>
-                                <ItemsControl ItemsSource="{Binding Weaknesses}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="train:Weakness">
-                                            <StackPanel Margin="0,0,0,9">
-                                                <TextBlock Text="{Binding Benchmark.Label}" FontWeight="Bold"/>
-                                                <TextBlock Text="{Binding Critique}" Classes="muted" TextWrapping="Wrap" FontSize="13"/>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
-                            <StackPanel Spacing="8">
-                                <TextBlock Classes="label" Text="NEXT IMPROVEMENT STEPS" Foreground="{DynamicResource AccentBrush}"/>
-                                <ItemsControl ItemsSource="{Binding Plan}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="train:Drill">
-                                            <StackPanel Margin="0,0,0,9">
-                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{Binding How}" Classes="muted" TextWrapping="Wrap" FontSize="13"/>
-                                                <TextBlock Text="{Binding Where}" Foreground="{DynamicResource Accent2Brush}" FontSize="12"/>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
-
                     <Border Classes="card">
                         <StackPanel>
                             <TextBlock Classes="label" Text="RECENT MATCHES"/>
@@ -148,7 +114,7 @@
 
         <!-- ===== Matches ===== -->
         <DataTemplate DataType="vm:MatchesVm">
-            <ScrollViewer Padding="30">
+            <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="16">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="h1" Text="MATCHES"/>
@@ -174,7 +140,7 @@
 
         <!-- ===== Trainer ===== -->
         <DataTemplate DataType="vm:TrainerVm">
-            <ScrollViewer Padding="30">
+            <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="16">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="h1" Text="SMART TRAINER"/>
@@ -238,7 +204,7 @@
 
         <!-- ===== Rank ===== -->
         <DataTemplate DataType="vm:RankVm">
-            <ScrollViewer Padding="30">
+            <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="16">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="h1" Text="RANK TRACKER"/>
@@ -272,7 +238,7 @@
 
         <!-- ===== Live ===== -->
         <DataTemplate DataType="vm:LiveVm">
-            <ScrollViewer Padding="30">
+            <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="16">
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel><TextBlock Classes="h1" Text="LIVE LOBBY"/><TextBlock Text="{Binding Status}" Classes="muted"/></StackPanel>
@@ -306,7 +272,7 @@
 
         <!-- ===== Agents ===== -->
         <DataTemplate DataType="vm:AgentsVm">
-            <ScrollViewer Padding="30">
+            <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="16">
                     <StackPanel><TextBlock Classes="h1" Text="AGENT PICKER"/><TextBlock Text="{Binding Status}" Classes="muted"/></StackPanel>
                     <Border Classes="card" Background="#1A1F3A" IsVisible="{Binding SelectedName, Converter={x:Static ObjectConverters.IsNotNull}}">
@@ -343,7 +309,7 @@
 
         <!-- ===== Settings ===== -->
         <DataTemplate DataType="vm:SettingsVm">
-            <ScrollViewer Padding="30">
+            <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="16" MaxWidth="620" HorizontalAlignment="Left">
                     <TextBlock Classes="h1" Text="SETTINGS"/>
                     <Border Classes="card">
