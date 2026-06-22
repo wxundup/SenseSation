@@ -12,6 +12,7 @@ public sealed record LiveLobby
     public string Map { get; init; } = "";
     public string Mode { get; init; } = "";
     public string Phase { get; init; } = ""; // PREGAME / INGAME
+    public string Server { get; init; } = ""; // human-readable game server (city)
     public IReadOnlyList<PlayerSummary> Allies { get; init; } = [];
     public IReadOnlyList<PlayerSummary> Enemies { get; init; } = [];
 

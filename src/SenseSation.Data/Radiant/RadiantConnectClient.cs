@@ -94,6 +94,7 @@ public sealed class RadiantConnectClient(RiotSession session) : ILiveClient
                 Map = MapTable.Display(ReflectionHelpers.GetString(match, "MapId")),
                 Mode = ReflectionHelpers.GetString(match, "ModeId") ?? "",
                 Phase = "INGAME",
+                Server = ParseServer(ReflectionHelpers.GetString(match, "GamePodId")),
                 Allies = allies,
                 Enemies = enemies,
             };
@@ -225,6 +226,16 @@ public sealed class RadiantConnectClient(RiotSession session) : ILiveClient
         }
         string key = name.Replace("/", "_").Replace("-", "_").Replace(" ", "_");
         return Enum.TryParse(key, true, out agent);
+    }
+
+    // GamePodId looks like "aresriot.aws-rclusterprod-use1-1.na-gp-ashburn-1" -> "Ashburn".
+    private static string ParseServer(string? gamePodId)
+    {
+        if (string.IsNullOrEmpty(gamePodId)) return "";
+        int i = gamePodId.IndexOf("-gp-", StringComparison.OrdinalIgnoreCase);
+        if (i < 0) return "";
+        var city = gamePodId[(i + 4)..].Split('-').FirstOrDefault();
+        return string.IsNullOrEmpty(city) ? "" : char.ToUpperInvariant(city[0]) + city[1..];
     }
 
     private async Task<int> FetchTierAsync(string puuid, CancellationToken ct)

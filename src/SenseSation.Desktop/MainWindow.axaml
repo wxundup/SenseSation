@@ -3,6 +3,7 @@
         xmlns:vm="clr-namespace:SenseSation.Desktop.ViewModels"
         xmlns:core="clr-namespace:SenseSation.Core.Models;assembly=SenseSation.Core"
         xmlns:train="clr-namespace:SenseSation.Core.Training;assembly=SenseSation.Core"
+        xmlns:ctl="clr-namespace:SenseSation.Desktop.Controls"
         x:Class="SenseSation.Desktop.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="SenseSation" Width="1280" Height="820"
@@ -11,27 +12,31 @@
 
     <Window.DataTemplates>
 
-        <!-- Match row (auto-applied to MatchSummary items) -->
+        <!-- Match row (auto-applied to MatchSummary items) — click to open detail -->
         <DataTemplate DataType="core:MatchSummary">
-            <Border Classes="row">
-                <Grid ColumnDefinitions="80,*,*,70,110,55,60">
-                    <TextBlock Text="{Binding ResultLabel}" FontWeight="Black"
-                               Foreground="{Binding Result, Converter={x:Static vm:Conv.ResultBrush}}"/>
-                    <TextBlock Grid.Column="1" Text="{Binding Agent}"/>
-                    <TextBlock Grid.Column="2" Text="{Binding Map}"/>
-                    <TextBlock Grid.Column="3" Text="{Binding ScoreLabel}" Classes="muted"/>
-                    <TextBlock Grid.Column="4" Text="{Binding KdaLabel}"/>
-                    <TextBlock Grid.Column="5" Text="{Binding You.HeadshotPct, StringFormat='{}{0}%'}" Classes="muted"/>
-                    <TextBlock Grid.Column="6" Text="{Binding You.DamagePerRound}" Classes="muted" TextAlignment="Right"/>
-                </Grid>
-            </Border>
+            <Button Classes="flat" ToolTip.Tip="Review this match"
+                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ShowMatchCommand}"
+                    CommandParameter="{Binding MatchId}">
+                <Border Classes="row">
+                    <Grid ColumnDefinitions="80,*,*,70,110,55,60">
+                        <TextBlock Text="{Binding ResultLabel}" FontWeight="Black"
+                                   Foreground="{Binding Result, Converter={x:Static vm:Conv.ResultBrush}}"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Agent}"/>
+                        <TextBlock Grid.Column="2" Text="{Binding Map}"/>
+                        <TextBlock Grid.Column="3" Text="{Binding ScoreLabel}" Classes="muted"/>
+                        <TextBlock Grid.Column="4" Text="{Binding KdaLabel}"/>
+                        <TextBlock Grid.Column="5" Text="{Binding You.HeadshotPct, StringFormat='{}{0}%'}" Classes="muted"/>
+                        <TextBlock Grid.Column="6" Text="{Binding You.DamagePerRound}" Classes="muted" TextAlignment="Right"/>
+                    </Grid>
+                </Border>
+            </Button>
         </DataTemplate>
 
 
         <!-- ===== Dashboard ===== -->
         <DataTemplate DataType="vm:DashboardVm">
             <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="16">
+                <StackPanel Spacing="16" MaxWidth="{Binding $parent[ScrollViewer].Bounds.Width}">
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel>
                             <TextBlock Classes="h1" Text="DASHBOARD"/>
@@ -115,7 +120,7 @@
         <!-- ===== Matches ===== -->
         <DataTemplate DataType="vm:MatchesVm">
             <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="16">
+                <StackPanel Spacing="16" MaxWidth="{Binding $parent[ScrollViewer].Bounds.Width}">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="h1" Text="MATCHES"/>
                         <Button Grid.Column="1" Classes="icon" Content="↻" ToolTip.Tip="Refresh Data" Command="{Binding RefreshCommand}"/>
@@ -141,7 +146,7 @@
         <!-- ===== Trainer ===== -->
         <DataTemplate DataType="vm:TrainerVm">
             <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="16">
+                <StackPanel Spacing="16" MaxWidth="{Binding $parent[ScrollViewer].Bounds.Width}">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="h1" Text="SMART TRAINER"/>
                         <Button Grid.Column="1" Classes="icon" Content="↻" ToolTip.Tip="Refresh Data" Command="{Binding RefreshCommand}"/>
@@ -205,15 +210,39 @@
         <!-- ===== Rank ===== -->
         <DataTemplate DataType="vm:RankVm">
             <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="16">
+                <StackPanel Spacing="16" MaxWidth="{Binding $parent[ScrollViewer].Bounds.Width}">
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBlock Classes="h1" Text="RANK TRACKER"/>
                         <Button Grid.Column="1" Classes="icon" Content="↻" ToolTip.Tip="Refresh Data" Command="{Binding RefreshCommand}"/>
                     </Grid>
-                    <UniformGrid Columns="2">
-                        <Border Classes="card" Margin="0,0,8,0"><StackPanel><TextBlock Classes="label" Text="CURRENT RANK"/><TextBlock Text="{Binding Rank}" FontSize="26" FontWeight="Bold"/></StackPanel></Border>
-                        <Border Classes="card" Margin="8,0,0,0"><StackPanel><TextBlock Classes="label" Text="RECENT NET RR"/><TextBlock Text="{Binding NetRr}" FontSize="26" FontWeight="Bold"/></StackPanel></Border>
-                    </UniformGrid>
+                    <Grid ColumnDefinitions="Auto,*">
+                        <!-- Big current-rank circle, its own panel -->
+                        <Border Classes="card accentEdge" Width="300" Margin="0,0,16,0">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                                <TextBlock Classes="label" Text="CURRENT RANK" HorizontalAlignment="Center"/>
+                                <Border Width="172" Height="172" CornerRadius="86" BorderThickness="8"
+                                        BorderBrush="{DynamicResource AccentBrush}" Background="#FF0A1219">
+                                    <Image Source="{Binding Tier, Converter={x:Static vm:Conv.RankIcon}}"
+                                           Width="96" Height="96" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <TextBlock Text="{Binding Rank}" FontSize="24" FontWeight="Black" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{Binding Rr}" Foreground="{DynamicResource AccentBrush}"
+                                           FontSize="14" FontWeight="Bold" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <!-- RR trend graph -->
+                        <Border Grid.Column="1" Classes="card">
+                            <StackPanel>
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Classes="label" Text="RR TREND"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding NetRr}" FontWeight="Bold"
+                                               Foreground="{DynamicResource Accent2Brush}"/>
+                                </Grid>
+                                <ctl:Sparkline Points="{Binding RrPoints}" Stroke="{DynamicResource AccentBrush}"
+                                               MinHeight="200" Margin="0,14,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                     <Border Classes="card">
                         <StackPanel>
                             <TextBlock Classes="label" Text="GAME BY GAME"/>
@@ -239,10 +268,14 @@
         <!-- ===== Live ===== -->
         <DataTemplate DataType="vm:LiveVm">
             <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="16">
-                    <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Spacing="16" MaxWidth="{Binding $parent[ScrollViewer].Bounds.Width}">
+                    <Grid ColumnDefinitions="*,Auto,Auto">
                         <StackPanel><TextBlock Classes="h1" Text="LIVE LOBBY"/><TextBlock Text="{Binding Status}" Classes="muted"/></StackPanel>
-                        <Button Grid.Column="1" Classes="icon" Content="↻" ToolTip.Tip="Scan Lobby" Command="{Binding ScanCommand}" IsEnabled="{Binding !Busy}"/>
+                        <Border Grid.Column="1" Classes="chip" VerticalAlignment="Center" Margin="0,0,10,0"
+                                IsVisible="{Binding Server, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock Text="{Binding Server}" Foreground="{DynamicResource Accent2Brush}" FontWeight="SemiBold" FontSize="12"/>
+                        </Border>
+                        <Button Grid.Column="2" Classes="icon" Content="↻" ToolTip.Tip="Scan Lobby" Command="{Binding ScanCommand}" IsEnabled="{Binding !Busy}"/>
                     </Grid>
                     <UniformGrid Columns="2">
                         <Border Classes="card" Margin="0,0,8,0">
@@ -250,7 +283,10 @@
                                 <TextBlock Classes="label" Text="YOUR TEAM"/>
                                 <ItemsControl ItemsSource="{Binding Allies}" Margin="0,8,0,0">
                                     <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:LivePlayer">
-                                        <Border Classes="row"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="{Binding Rank}" Classes="muted"/></Grid></Border>
+                                        <Button Classes="flat" ToolTip.Tip="View career"
+                                                Command="{Binding $parent[ItemsControl].((vm:LiveVm)DataContext).ViewCareerCommand}" CommandParameter="{Binding}">
+                                            <Border Classes="row"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="{Binding Rank}" Classes="muted"/></Grid></Border>
+                                        </Button>
                                     </DataTemplate></ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </StackPanel>
@@ -260,12 +296,45 @@
                                 <TextBlock Classes="label" Text="ENEMY TEAM"/>
                                 <ItemsControl ItemsSource="{Binding Enemies}" Margin="0,8,0,0">
                                     <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:LivePlayer">
-                                        <Border Classes="row"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="{Binding Rank}" Classes="muted"/></Grid></Border>
+                                        <Button Classes="flat" ToolTip.Tip="View career"
+                                                Command="{Binding $parent[ItemsControl].((vm:LiveVm)DataContext).ViewCareerCommand}" CommandParameter="{Binding}">
+                                            <Border Classes="row"><Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Grid.Column="1" Text="{Binding Rank}" Classes="muted"/></Grid></Border>
+                                        </Button>
                                     </DataTemplate></ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </StackPanel>
                         </Border>
                     </UniformGrid>
+
+                    <Border Classes="card accentEdge" IsVisible="{Binding CareerOpen}">
+                        <StackPanel Spacing="10">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock FontWeight="Bold" FontSize="15"><Run Text="Career · "/><Run Text="{Binding CareerName}"/></TextBlock>
+                                <Button Grid.Column="1" Classes="icon" Content="✕" ToolTip.Tip="Close" Command="{Binding CloseCareerCommand}"/>
+                            </Grid>
+                            <TextBlock Text="Loading…" Classes="muted" IsVisible="{Binding CareerLoading}"/>
+                            <StackPanel IsVisible="{Binding Career, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Border Classes="chip"><TextBlock Text="{Binding Career.Rank.Name}" Foreground="{StaticResource GoldBrush}" FontWeight="SemiBold" FontSize="12"/></Border>
+                                    <Border Classes="chip"><TextBlock Text="{Binding Career.WinRate, StringFormat='{}{0:0}% WR'}" FontSize="12"/></Border>
+                                    <Border Classes="chip"><TextBlock Text="{Binding Career.AvgKd, StringFormat='{}{0:0.00} K/D'}" FontSize="12"/></Border>
+                                </StackPanel>
+                                <ItemsControl ItemsSource="{Binding Career.Recent}" Margin="0,10,0,0">
+                                    <ItemsControl.ItemTemplate><DataTemplate x:DataType="core:MatchSummary">
+                                        <Border Classes="row">
+                                            <Grid ColumnDefinitions="60,*,Auto,Auto">
+                                                <TextBlock Text="{Binding ResultLabel}" FontWeight="Bold" FontSize="12"
+                                                           Foreground="{Binding Result, Converter={x:Static vm:Conv.ResultBrush}}"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Agent}"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding ScoreLabel}" Classes="muted" Margin="0,0,16,0"/>
+                                                <TextBlock Grid.Column="3" Text="{Binding KdaLabel}" Classes="muted"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
         </DataTemplate>
@@ -273,7 +342,7 @@
         <!-- ===== Agents ===== -->
         <DataTemplate DataType="vm:AgentsVm">
             <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel Spacing="16">
+                <StackPanel Spacing="16" MaxWidth="{Binding $parent[ScrollViewer].Bounds.Width}">
                     <StackPanel><TextBlock Classes="h1" Text="AGENT PICKER"/><TextBlock Text="{Binding Status}" Classes="muted"/></StackPanel>
                     <Border Classes="card" Background="#1A1F3A" IsVisible="{Binding SelectedName, Converter={x:Static ObjectConverters.IsNotNull}}">
                         <TextBlock><Run Text="Pre-selected: "/><Run Text="{Binding SelectedName}" FontWeight="Bold"/><Run Text=" — auto-locks once agent select loads"/></TextBlock>
@@ -317,10 +386,9 @@
                             <TextBlock Classes="label" Text="HENRIKDEV API KEY"/>
                             <TextBlock Classes="muted" TextWrapping="Wrap" Text="With a key: any account, game not needed. Without: reads your running Riot client."/>
                             <TextBox Watermark="paste key" Text="{Binding ApiKey}" PasswordChar="•"/>
-                            <StackPanel Orientation="Horizontal" Spacing="10">
-                                <Button Classes="primary" Content="Save key" Command="{Binding SaveKeyCommand}"/>
-                                <TextBlock Text="{Binding Status}" Classes="muted" VerticalAlignment="Center"/>
-                            </StackPanel>
+                            <Button Classes="primary" Content="Save key" HorizontalAlignment="Left" Command="{Binding SaveKeyCommand}"/>
+                            <TextBlock Text="{Binding Status}" Classes="muted" TextWrapping="Wrap"
+                                       IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                         </StackPanel>
                     </Border>
                     <Border Classes="card">
@@ -346,6 +414,66 @@
                                        Text="Applies instantly. Rank theme recolors the app by your current rank."/>
                         </StackPanel>
                     </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </DataTemplate>
+
+        <!-- ===== Scoreboard row ===== -->
+        <DataTemplate DataType="vm:ScoreRow">
+            <Border Classes="row" Background="{Binding IsSelf, Converter={x:Static vm:Conv.SelfBg}}" CornerRadius="6">
+                <Grid ColumnDefinitions="*,96,100,46,50">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Agent}" Classes="muted"/>
+                    <TextBlock Grid.Column="2" Text="{Binding Kda}"/>
+                    <TextBlock Grid.Column="3" Text="{Binding Hs, StringFormat='{}{0}%'}" Classes="muted"/>
+                    <TextBlock Grid.Column="4" Text="{Binding Adr}" Classes="muted" TextAlignment="Right"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- ===== Match detail ===== -->
+        <DataTemplate DataType="vm:MatchDetailVm">
+            <ScrollViewer Padding="30" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Spacing="16" MaxWidth="{Binding $parent[ScrollViewer].Bounds.Width}">
+                    <StackPanel Orientation="Horizontal" Spacing="14">
+                        <Button Classes="icon" Content="‹" ToolTip.Tip="Back"
+                                Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).BackCommand}"/>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Classes="h1" Text="{Binding Header}"/>
+                            <TextBlock Text="{Binding Sub}" Classes="muted"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Error}" Foreground="{StaticResource LossBrush}"
+                               IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    <Border Classes="card accentEdge">
+                        <TextBlock Text="{Binding YourLine}" FontWeight="Bold" FontSize="15"/>
+                    </Border>
+                    <Border Classes="card" IsVisible="{Binding Economy.Count}">
+                        <StackPanel>
+                            <TextBlock Classes="label" Text="YOUR BUY PATTERN"/>
+                            <ItemsControl ItemsSource="{Binding Economy}" Margin="0,8,0,0">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="core:RoundEconomy">
+                                        <Border Width="26" Height="26" CornerRadius="6" Margin="2"
+                                                Background="{Binding BuyType, Converter={x:Static vm:Conv.BuyBrush}}"
+                                                ToolTip.Tip="{Binding BuyType}">
+                                            <TextBlock Text="{Binding RoundNumber}" FontSize="11" FontWeight="Bold"
+                                                       Foreground="#0A1219" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                    <Grid ColumnDefinitions="*,*">
+                        <Border Classes="card" Margin="0,0,8,0">
+                            <StackPanel><TextBlock Classes="label" Text="RED TEAM"/><ItemsControl ItemsSource="{Binding Red}" Margin="0,8,0,0"/></StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Classes="card" Margin="8,0,0,0">
+                            <StackPanel><TextBlock Classes="label" Text="BLUE TEAM"/><ItemsControl ItemsSource="{Binding Blue}" Margin="0,8,0,0"/></StackPanel>
+                        </Border>
+                    </Grid>
                 </StackPanel>
             </ScrollViewer>
         </DataTemplate>

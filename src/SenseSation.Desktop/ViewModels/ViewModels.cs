@@ -71,6 +71,22 @@ public partial class MainWindowViewModel : ObservableObject
         _ = page.OnShownAsync();
     }
 
+    private readonly MatchDetailVm _detail = new();
+    private PageVm? _backTo;
+
+    [RelayCommand]
+    private async Task ShowMatch(string? matchId)
+    {
+        if (string.IsNullOrEmpty(matchId)) return;
+        _backTo = Current;
+        foreach (var p in Pages) p.IsActive = false;
+        Current = _detail;
+        await _detail.Load(matchId);
+    }
+
+    [RelayCommand]
+    private void Back() => Navigate(_backTo ?? Pages[0]);
+
     private void RefreshTopbar()
     {
         var d = Bootstrap.Data;
@@ -200,7 +216,20 @@ public static class Conv
     public static readonly Avalonia.Data.Converters.IValueConverter AssetBitmap =
         new Avalonia.Data.Converters.FuncValueConverter<string?, Avalonia.Media.Imaging.Bitmap?>(Load);
 
-    private static Avalonia.Media.Imaging.Bitmap? Load(string rel)
+    public static readonly Avalonia.Data.Converters.IValueConverter BuyBrush =
+        new Avalonia.Data.Converters.FuncValueConverter<BuyType, Avalonia.Media.IBrush>(b => b switch
+        {
+            BuyType.FullBuy => Avalonia.Media.Brush.Parse("#1FD18E"),
+            BuyType.ForceBuy => Avalonia.Media.Brush.Parse("#FFCB6B"),
+            BuyType.Eco => Avalonia.Media.Brush.Parse("#46586A"),
+            _ => Avalonia.Media.Brush.Parse("#28333D"),
+        });
+
+    public static readonly Avalonia.Data.Converters.IValueConverter SelfBg =
+        new Avalonia.Data.Converters.FuncValueConverter<bool, Avalonia.Media.IBrush>(
+            self => self ? Avalonia.Media.Brush.Parse("#22FF4655") : Avalonia.Media.Brushes.Transparent);
+
+    private static Avalonia.Media.Imaging.Bitmap? Load(string? rel)
     {
         if (string.IsNullOrEmpty(rel)) return null;
         if (_iconCache.TryGetValue(rel, out var cached)) return cached;
@@ -261,7 +290,10 @@ public partial class RankVm : PageVm
     public override string Title => "Rank Tracker";
     public override string Glyph => "▲";
     [ObservableProperty] private string _rank = "Unranked";
+    [ObservableProperty] private string _rr = "—";
+    [ObservableProperty] private int _tier;
     [ObservableProperty] private string _netRr = "+0 RR";
+    [ObservableProperty] private IReadOnlyList<double> _rrPoints = [];
     public ObservableCollection<RrSnapshot> History { get; } = [];
 
     public RankVm() => Data.Changed += () => Dispatcher.UIThread.Post(Sync);
@@ -270,9 +302,12 @@ public partial class RankVm : PageVm
     {
         var rk = Data.Rank ?? SenseSation.Core.Models.Rank.Unranked;
         Rank = rk.Name;
+        Tier = rk.Tier;
+        Rr = rk.Tier > 0 ? $"{rk.Rr} RR" : "—";
         IconAsset = rk.Tier > 2 ? $"ranks/{rk.Tier}" : "";
         int net = Data.RrHistory.Sum(s => s.RrDelta);
         NetRr = $"{(net >= 0 ? "+" : "")}{net} RR";
+        RrPoints = Data.RrHistory.Select(s => (double)s.LadderPoints).ToList();
         History.Clear();
         foreach (var s in Data.RrHistory.Reverse().Take(30)) History.Add(s);
     }
@@ -330,12 +365,52 @@ public partial class SettingsVm : PageVm
     }
 }
 
-// ---- Live -------------------------------------------------------------------
-public sealed class LivePlayer
+// ---- Match detail -----------------------------------------------------------
+public sealed record ScoreRow(string Name, string Agent, string RankName, int K, int D, int A, int Hs, int Adr, bool IsSelf)
 {
-    public required string Name { get; init; }
-    public required string Rank { get; init; }
+    public string Kda => $"{K} / {D} / {A}";
 }
+
+public partial class MatchDetailVm : PageVm
+{
+    public override string Title => "Match";
+    public override string Glyph => "‹";
+    [ObservableProperty] private bool _loading;
+    [ObservableProperty] private string _error = "";
+    [ObservableProperty] private string _header = "";
+    [ObservableProperty] private string _sub = "";
+    [ObservableProperty] private string _yourLine = "";
+    public ObservableCollection<ScoreRow> Red { get; } = [];
+    public ObservableCollection<ScoreRow> Blue { get; } = [];
+    public ObservableCollection<RoundEconomy> Economy { get; } = [];
+
+    public async Task Load(string matchId)
+    {
+        Loading = true; Error = ""; Header = "Loading…"; Sub = "";
+        Red.Clear(); Blue.Clear(); Economy.Clear();
+        try
+        {
+            var d = await Bootstrap.Data.GetMatchAsync(matchId);
+            if (d is null) { Error = "Could not load this match."; Header = "Match"; return; }
+            var s = d.Summary;
+            Header = $"{s.Result.ToString().ToUpper()} · {s.Map}";
+            Sub = $"{s.Agent} · {s.ScoreLabel}";
+            YourLine = $"{s.You.Kills}/{s.You.Deaths}/{s.You.Assists}  ·  {s.You.Kd:0.00} K/D  ·  {s.You.DamagePerRound} ADR  ·  {s.You.HeadshotPct}% HS";
+            foreach (var p in d.AllPlayers)
+            {
+                var l = d.Scoreboard.TryGetValue(p.Puuid, out var sc) ? sc : new Scoreline();
+                var row = new ScoreRow(p.NameOrAgent, p.Agent, p.Rank.Name, l.Kills, l.Deaths, l.Assists, l.HeadshotPct, l.DamagePerRound, p.IsSelf);
+                (p.Team == Team.Red ? Red : Blue).Add(row);
+            }
+            foreach (var e in d.Economy) Economy.Add(e);
+        }
+        catch (Exception ex) { Error = ex.Message; Header = "Match"; }
+        finally { Loading = false; }
+    }
+}
+
+// ---- Live -------------------------------------------------------------------
+public sealed record LivePlayer(string Name, string Rank, string Puuid);
 
 public partial class LiveVm : PageVm
 {
@@ -343,7 +418,12 @@ public partial class LiveVm : PageVm
     public override string Glyph => "◉";
     public LiveVm() => IconAsset = "icons/monitor";
     [ObservableProperty] private string _status = "Not scanning";
+    [ObservableProperty] private string _server = "";
     [ObservableProperty] private bool _busy;
+    [ObservableProperty] private PlayerCareer? _career;
+    [ObservableProperty] private bool _careerOpen;
+    [ObservableProperty] private string _careerName = "";
+    [ObservableProperty] private bool _careerLoading;
     public ObservableCollection<LivePlayer> Allies { get; } = [];
     public ObservableCollection<LivePlayer> Enemies { get; } = [];
 
@@ -358,13 +438,26 @@ public partial class LiveVm : PageVm
             var lobby = await Bootstrap.Live.GetCurrentLobbyAsync();
             Allies.Clear(); Enemies.Clear();
             if (lobby is null) { Status = Bootstrap.Live.LastError ?? "No match found."; return; }
-            foreach (var p in lobby.Allies) Allies.Add(new LivePlayer { Name = p.NameOrAgent, Rank = p.Rank.Name });
-            foreach (var p in lobby.Enemies) Enemies.Add(new LivePlayer { Name = p.NameOrAgent, Rank = p.Rank.Name });
+            foreach (var p in lobby.Allies) Allies.Add(new LivePlayer(p.NameOrAgent, p.Rank.Name, p.Puuid));
+            foreach (var p in lobby.Enemies) Enemies.Add(new LivePlayer(p.NameOrAgent, p.Rank.Name, p.Puuid));
+            Server = string.IsNullOrEmpty(lobby.Server) ? "" : $"Server: {lobby.Server}";
             Status = $"In a match · {lobby.Map}";
         }
         catch (Exception ex) { Status = ex.Message; }
         finally { Busy = false; }
     }
+
+    [RelayCommand]
+    private async Task ViewCareer(LivePlayer? p)
+    {
+        if (p is null || string.IsNullOrEmpty(p.Puuid)) return;
+        CareerOpen = true; CareerLoading = true; Career = null; CareerName = p.Name;
+        try { Career = await Bootstrap.Live.GetCareerAsync(p.Puuid); }
+        catch { }
+        finally { CareerLoading = false; }
+    }
+
+    [RelayCommand] private void CloseCareer() => CareerOpen = false;
 }
 
 // ---- Agents -----------------------------------------------------------------
